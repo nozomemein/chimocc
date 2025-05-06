@@ -13,8 +13,13 @@ tmp: tmp.s
 	$(CC) $(CFLAGS) $< -o $@
 
 test: $(COMPILER)
-	cargo test
 	./test/test.sh
+
+cargo_test:
+	cargo test
+
+test_all: cargo_test test
+
 
 clean:
 	rm -f tmp.s tmp
@@ -24,4 +29,4 @@ fmt:
 	cargo fmt --all
 	cargo clippy --fix --allow-dirty
 
-.PHONY: FORCE test clean
+.PHONY: FORCE test clean test cargo_test test_all fmt
