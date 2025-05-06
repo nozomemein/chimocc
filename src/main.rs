@@ -29,7 +29,7 @@ fn main() -> Result<(), std::io::Error> {
     writeln!(&output_file, ".global main")?;
     writeln!(&output_file, "main:")?;
 
-    let tokens = lexer::tokenize(input);
+    let tokens = lexer::Lexer::new(&input).tokenize();
     let mut token_stream = TokenStream::new(tokens.into_iter());
 
     writeln!(&output_file, "  mov rax, {}", token_stream.expect_number())?;

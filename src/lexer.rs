@@ -1,5 +1,47 @@
 use std::iter::Peekable;
 
+pub struct Lexer<'a> {
+    pub input: &'a str,
+}
+
+impl<'a> Lexer<'a> {
+    pub fn new(input: &'a str) -> Self {
+        Self { input }
+    }
+
+    pub fn tokenize(&self) -> Vec<Token> {
+        let mut tokens = Vec::new();
+        let mut input_chars = self.input.chars().peekable();
+
+        while let Some(c) = input_chars.next() {
+            match c {
+                ' ' | '\n' | '\t' => continue,
+                '+' => tokens.push(Token::new(TokenKind::BinOp(BinOpToken::Plus))),
+                '-' => tokens.push(Token::new(TokenKind::BinOp(BinOpToken::Minus))),
+                '0'..='9' => {
+                    let mut number = c.to_string();
+                    while let Some(&next_char) = input_chars.peek() {
+                        if next_char.is_ascii_digit() {
+                            number.push(next_char);
+                            input_chars.next();
+                        } else {
+                            break;
+                        }
+                    }
+
+                    let num = number.parse::<isize>().unwrap();
+                    tokens.push(Token::new(TokenKind::Num(num)));
+                }
+                _ => panic!("Unexpected character: {}", c),
+            }
+        }
+
+        tokens.push(Token::new(TokenKind::Eof));
+
+        tokens
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum BinOpToken {
     Plus,
@@ -20,38 +62,6 @@ pub struct Token {
 
 pub struct TokenStream<I: Iterator<Item = Token>> {
     iter: Peekable<I>,
-}
-
-pub fn tokenize(input: String) -> Vec<Token> {
-    let mut tokens = Vec::new();
-    let mut input_chars = input.chars().peekable();
-
-    while let Some(c) = input_chars.next() {
-        match c {
-            ' ' | '\n' | '\t' => continue,
-            '+' => tokens.push(Token::new(TokenKind::BinOp(BinOpToken::Plus))),
-            '-' => tokens.push(Token::new(TokenKind::BinOp(BinOpToken::Minus))),
-            '0'..='9' => {
-                let mut number = c.to_string();
-                while let Some(&next_char) = input_chars.peek() {
-                    if next_char.is_ascii_digit() {
-                        number.push(next_char);
-                        input_chars.next();
-                    } else {
-                        break;
-                    }
-                }
-
-                let num = number.parse::<isize>().unwrap();
-                tokens.push(Token::new(TokenKind::Num(num)));
-            }
-            _ => panic!("Unexpected character: {}", c),
-        }
-    }
-
-    tokens.push(Token::new(TokenKind::Eof));
-
-    tokens
 }
 
 impl Token {
@@ -121,8 +131,10 @@ mod tests {
     fn test_tokenize() {
         let input = String::from("1 + 4 - 909");
 
+        let lexer = Lexer::new(&input);
+
         assert_eq!(
-            tokenize(input),
+            lexer.tokenize(),
             tokens![
                 TokenKind::Num(1),
                 TokenKind::BinOp(BinOpToken::Plus),
@@ -134,9 +146,10 @@ mod tests {
         );
 
         let input = String::from("0\t + 5+1+9-3 - \n 909");
+        let lexer = Lexer::new(&input);
 
         assert_eq!(
-            tokenize(input),
+            lexer.tokenize(),
             tokens![
                 TokenKind::Num(0),
                 TokenKind::BinOp(BinOpToken::Plus),
