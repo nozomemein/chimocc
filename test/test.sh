@@ -34,3 +34,7 @@ assert() {
 assert 1 "1"
 assert 0 "0"
 assert 255 "255"
+
+assert 1 "1 + 0"
+assert 2 "1 + 1"
+assert 97 "1 + 100 - 4"
