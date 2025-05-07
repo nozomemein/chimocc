@@ -30,7 +30,7 @@ fn main() -> Result<(), std::io::Error> {
     writeln!(&output_file, "main:")?;
 
     let tokens = lexer::Lexer::new(&input).tokenize();
-    let mut token_stream = TokenStream::new(tokens.into_iter());
+    let mut token_stream = TokenStream::new(tokens.into_iter(), &input);
 
     writeln!(&output_file, "  mov rax, {}", token_stream.expect_number())?;
     while let Some(token) = token_stream.next() {
