@@ -17,7 +17,7 @@ fn main() -> Result<(), std::io::Error> {
         panic!("Please provide a file name as an argument.");
     }
 
-    let (mut input_file, mut output_file) = get_file_name(&args).expect("Failed to get file name");
+    let (mut input_file, output_file) = get_file_name(&args).expect("Failed to get file name");
 
     let mut input = String::new();
 
@@ -25,35 +25,30 @@ fn main() -> Result<(), std::io::Error> {
         .read_to_string(&mut input)
         .expect("It must be UTF-8");
 
-    writeln!(&mut output_file, ".intel_syntax noprefix")?;
-    writeln!(&mut output_file, ".global main")?;
-    writeln!(&mut output_file, "main:")?;
+    writeln!(&output_file, ".intel_syntax noprefix")?;
+    writeln!(&output_file, ".global main")?;
+    writeln!(&output_file, "main:")?;
 
-    let tokens = lexer::tokenize(input);
-    let mut token_stream = TokenStream::new(tokens.into_iter());
+    let tokens = lexer::Lexer::new(&input).tokenize();
+    let mut token_stream = TokenStream::new(tokens.into_iter(), &input);
 
-    writeln!(
-        &mut output_file,
-        "  mov rax, {}",
-        token_stream.expect_number()
-    )?;
+    writeln!(&output_file, "  mov rax, {}", token_stream.expect_number())?;
     while let Some(token) = token_stream.next() {
         match *token.kind {
-            TokenKind::BinOp(BinOpToken::Plus) => writeln!(
-                &mut output_file,
-                "  add rax, {}",
-                token_stream.expect_number()
-            )?,
-            TokenKind::BinOp(BinOpToken::Minus) => writeln!(
-                &mut output_file,
-                "  sub rax, {}",
-                token_stream.expect_number()
-            )?,
+            TokenKind::BinOp(BinOpToken::Plus) => {
+                writeln!(&output_file, "  add rax, {}", token_stream.expect_number())?
+            }
+            TokenKind::BinOp(BinOpToken::Minus) => {
+                writeln!(&output_file, "  sub rax, {}", token_stream.expect_number())?
+            }
             TokenKind::Num(_) => panic!("Unexpected `Num` token: {:?}", token.kind),
             TokenKind::Eof => break,
         }
     }
-    writeln!(&mut output_file, "  ret")?;
+    writeln!(&output_file, "  ret")?;
+
+    // Specify NX (No eXecute) for the stack
+    writeln!(&output_file, ".section .note.GNU-stack,\"\",@progbits")?;
 
     Ok(())
 }
