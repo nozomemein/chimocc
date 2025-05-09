@@ -7,6 +7,7 @@ use std::io::Write;
 use std::path::Path;
 
 mod lexer;
+mod parser;
 
 use crate::lexer::{BinOpToken, TokenKind, TokenStream};
 
@@ -43,6 +44,7 @@ fn main() -> Result<(), std::io::Error> {
             }
             TokenKind::Num(_) => panic!("Unexpected `Num` token: {:?}", token.kind),
             TokenKind::Eof => break,
+            _ => break,
         }
     }
     writeln!(&output_file, "  ret")?;
