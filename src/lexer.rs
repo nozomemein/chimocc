@@ -132,6 +132,7 @@ pub enum TokenKind {
     Eof,
 }
 
+#[allow(unused)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DelimToken {
     Brace,   // `{` or `}`

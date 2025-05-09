@@ -4,6 +4,7 @@ use crate::parser::{BinOpKind, Expr, ExprKind};
 
 pub struct Generator {}
 
+#[allow(unused)]
 impl Generator {
     pub fn new() -> Self {
         Self {}
