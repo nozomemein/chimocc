@@ -2,14 +2,18 @@ use core::panic;
 use std::env;
 use std::ffi::OsString;
 use std::fs::File;
+use std::io::BufWriter;
 use std::io::Read;
 use std::io::Write;
 use std::path::Path;
 
+mod generator;
 mod lexer;
 mod parser;
 
-use crate::lexer::{BinOpToken, TokenKind, TokenStream};
+use generator::Generator;
+
+use crate::lexer::TokenStream;
 
 fn main() -> Result<(), std::io::Error> {
     let args: Vec<String> = env::args().collect();
@@ -26,31 +30,24 @@ fn main() -> Result<(), std::io::Error> {
         .read_to_string(&mut input)
         .expect("It must be UTF-8");
 
-    writeln!(&output_file, ".intel_syntax noprefix")?;
-    writeln!(&output_file, ".global main")?;
-    writeln!(&output_file, "main:")?;
-
     let tokens = lexer::Lexer::new(&input).tokenize();
     let mut token_stream = TokenStream::new(tokens.into_iter(), &input);
+    let parser = parser::Parser::new();
+    let expr = parser.parse_expr(&mut token_stream);
+    let mut buf_writer = BufWriter::new(output_file);
 
-    writeln!(&output_file, "  mov rax, {}", token_stream.expect_number())?;
-    while let Some(token) = token_stream.next() {
-        match *token.kind {
-            TokenKind::BinOp(BinOpToken::Plus) => {
-                writeln!(&output_file, "  add rax, {}", token_stream.expect_number())?
-            }
-            TokenKind::BinOp(BinOpToken::Minus) => {
-                writeln!(&output_file, "  sub rax, {}", token_stream.expect_number())?
-            }
-            TokenKind::Num(_) => panic!("Unexpected `Num` token: {:?}", token.kind),
-            TokenKind::Eof => break,
-            _ => break,
-        }
-    }
-    writeln!(&output_file, "  ret")?;
+    writeln!(buf_writer, ".intel_syntax noprefix")?;
+    writeln!(buf_writer, ".global main")?;
+    writeln!(buf_writer, "main:")?;
+
+    Generator::gen_expr(&mut buf_writer, expr)?;
+    writeln!(buf_writer, "  pop rax")?;
+    writeln!(buf_writer, "  ret")?;
 
     // Specify NX (No eXecute) for the stack
-    writeln!(&output_file, ".section .note.GNU-stack,\"\",@progbits")?;
+    writeln!(buf_writer, ".section .note.GNU-stack,\"\",@progbits")?;
+
+    buf_writer.flush()?;
 
     Ok(())
 }
