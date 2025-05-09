@@ -31,6 +31,40 @@ impl<'a> Lexer<'a> {
                     TokenKind::BinOp(BinOpToken::Minus),
                     pos.next_char(),
                 )),
+                '*' => tokens.push(Token::new(
+                    TokenKind::BinOp(BinOpToken::Mul),
+                    pos.next_char(),
+                )),
+                '/' => {
+                    tokens.push(Token::new(
+                        TokenKind::BinOp(BinOpToken::Div),
+                        pos.next_char(),
+                    ));
+                }
+                '(' => tokens.push(Token::new(
+                    TokenKind::OpenDelim(DelimToken::Paren),
+                    pos.next_char(),
+                )),
+                ')' => tokens.push(Token::new(
+                    TokenKind::CloseDelim(DelimToken::Paren),
+                    pos.next_char(),
+                )),
+                // '{' => tokens.push(Token::new(
+                //     TokenKind::OpenDelim(DelimToken::Brace),
+                //     pos.next_char(),
+                // )),
+                // '}' => tokens.push(Token::new(
+                //     TokenKind::CloseDelim(DelimToken::Brace),
+                //     pos.next_char(),
+                // )),
+                // '[' => tokens.push(Token::new(
+                //     TokenKind::OpenDelim(DelimToken::Bracket),
+                //     pos.next_char(),
+                // )),
+                // ']' => tokens.push(Token::new(
+                //     TokenKind::CloseDelim(DelimToken::Bracket),
+                //     pos.next_char(),
+                // )),
                 '0'..='9' => {
                     let mut number = c.to_string();
                     while let Some(&next_char) = input_chars.peek() {
@@ -83,13 +117,27 @@ impl<'a> Lexer<'a> {
 pub enum BinOpToken {
     Plus,
     Minus,
+    Mul,
+    Div,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TokenKind {
     BinOp(BinOpToken),
     Num(isize),
+    /// An opening delimiter e.g., `{`
+    OpenDelim(DelimToken),
+    /// An closing delimiter e.g., `}`
+    CloseDelim(DelimToken),
     Eof,
+}
+
+#[allow(unused)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum DelimToken {
+    Brace,   // `{` or `}`
+    Paren,   // `(` or `)`
+    Bracket, // `[` or `]`
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -177,6 +225,23 @@ impl<'a, I: Iterator<Item = Token>> TokenStream<'a, I> {
                 panic!()
             }
         }
+    }
+
+    pub fn expect(&mut self, kind: TokenKind) {
+        let next_token = self.next();
+
+        match next_token {
+            Some(Token { kind: k, pos }) => {
+                if *k != kind {
+                    self.error_at(Some(pos), &format!("expected {:?} but got {:?}", kind, k))
+                }
+            }
+            None => self.error_at(None, &format!("expected {:?} but got None", kind)),
+        }
+    }
+
+    pub fn peek(&mut self) -> Option<&I::Item> {
+        self.iter.peek()
     }
 }
 
@@ -313,6 +378,52 @@ mod tests {
                 TokenKind::Num(3),
                 TokenKind::BinOp(BinOpToken::Minus),
                 TokenKind::Num(909),
+                TokenKind::Eof
+            ]
+        );
+
+        let input = String::from("(1 + 2) * 3");
+        let lexer = Lexer::new(&input);
+
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![
+                TokenKind::OpenDelim(DelimToken::Paren),
+                TokenKind::Num(1),
+                TokenKind::BinOp(BinOpToken::Plus),
+                TokenKind::Num(2),
+                TokenKind::CloseDelim(DelimToken::Paren),
+                TokenKind::BinOp(BinOpToken::Mul),
+                TokenKind::Num(3),
+                TokenKind::Eof
+            ]
+        );
+
+        let input = String::from("(1 + (2 + 3)) * 4");
+        let lexer = Lexer::new(&input);
+
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![
+                TokenKind::OpenDelim(DelimToken::Paren),
+                TokenKind::Num(1),
+                TokenKind::BinOp(BinOpToken::Plus),
+                TokenKind::OpenDelim(DelimToken::Paren),
+                TokenKind::Num(2),
+                TokenKind::BinOp(BinOpToken::Plus),
+                TokenKind::Num(3),
+                TokenKind::CloseDelim(DelimToken::Paren),
+                TokenKind::CloseDelim(DelimToken::Paren),
+                TokenKind::BinOp(BinOpToken::Mul),
+                TokenKind::Num(4),
                 TokenKind::Eof
             ]
         );
