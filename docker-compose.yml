@@ -1,0 +1,9 @@
+services:
+  dev:
+    image: rust:1.87.0-slim-bookworm
+    platform: linux/amd64
+    volumes:
+      - .:/work
+    working_dir: /work
+    tty: true
+    stdin_open: true
