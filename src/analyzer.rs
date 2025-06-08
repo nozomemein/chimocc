@@ -1,23 +1,13 @@
-use crate::{
-    lexer::Position,
-    parser::{BinOpKind, Binary, Expr, ExprKind, UnOp},
-};
+use crate::parser::{BinOpKind, Binary, Expr, ExprKind, UnOp};
 
-#[allow(unused)]
-pub struct Analyzer<'a> {
-    input: &'a str,
-}
+pub struct Analyzer {}
 
-impl<'a> Analyzer<'a> {
-    pub fn new(input: &'a str) -> Self {
-        Self { input }
-    }
-
-    pub fn down_expr(&self, expr: Expr) -> ConvExpr {
+impl Analyzer {
+    pub fn down_expr(expr: Expr) -> ConvExpr {
         match expr.kind {
             // do nothing
             ExprKind::Binary(Binary { kind, lhs, rhs }) => {
-                ConvExpr::new_binary(kind, self.down_expr(*lhs), self.down_expr(*rhs))
+                ConvExpr::new_binary(kind, Self::down_expr(*lhs), Self::down_expr(*rhs))
             }
             // do nothing
             ExprKind::Num(n) => ConvExpr::new_num(n),
@@ -25,37 +15,11 @@ impl<'a> Analyzer<'a> {
             ExprKind::Unary(UnOp::Minus, operand) => ConvExpr::new_binary(
                 BinOpKind::Sub,
                 ConvExpr::new_num(0),
-                self.down_expr(*operand),
+                Self::down_expr(*operand),
             ),
 
             // do nothing
-            ExprKind::Unary(UnOp::Plus, operand) => self.down_expr(*operand),
-        }
-    }
-
-    #[allow(unused)]
-    pub fn error_at(&self, pos: impl Into<Option<Position>>, msg: &str) -> ! {
-        let pos: Option<Position> = pos.into();
-        match pos {
-            None => panic!("Passed pos info was None.\n{}", msg),
-            Some(pos) => {
-                let mut splited = self.input.split('\n');
-                let line = splited.nth(pos.n_line).unwrap_or_else(|| {
-                    panic!(
-                        "Position is illegal, pos: {:?},\n input: {}",
-                        pos, self.input
-                    )
-                });
-                eprintln!("{}", line);
-                let mut buffer = String::with_capacity(pos.n_char + 1);
-                for _ in 0..pos.n_char {
-                    buffer.push(' ');
-                }
-                buffer.push('^');
-                eprintln!("{}", buffer);
-                eprintln!("{}", msg);
-                panic!();
-            }
+            ExprKind::Unary(UnOp::Plus, operand) => Self::down_expr(*operand),
         }
     }
 }
