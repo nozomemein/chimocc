@@ -1,6 +1,9 @@
 use std::io::{BufWriter, Write};
 
-use crate::parser::{BinOpKind, Expr, ExprKind, UnOp};
+use crate::{
+    analyzer::{ConvExpr, ConvExprKind},
+    parser::BinOpKind,
+};
 
 pub struct Generator {}
 
@@ -10,7 +13,7 @@ impl Generator {
         Self {}
     }
 
-    pub fn gen_head<W: Write>(f: &mut BufWriter<W>, expr: Expr) -> Result<(), std::io::Error> {
+    pub fn gen_head<W: Write>(f: &mut BufWriter<W>, expr: ConvExpr) -> Result<(), std::io::Error> {
         writeln!(f, ".intel_syntax noprefix")?;
         writeln!(f, ".global main")?;
         writeln!(f, "main:")?;
@@ -24,12 +27,12 @@ impl Generator {
         Ok(())
     }
 
-    pub fn gen_expr<W: Write>(f: &mut BufWriter<W>, expr: Expr) -> Result<(), std::io::Error> {
+    pub fn gen_expr<W: Write>(f: &mut BufWriter<W>, expr: ConvExpr) -> Result<(), std::io::Error> {
         match expr.kind {
-            ExprKind::Num(num) => {
+            ConvExprKind::Num(num) => {
                 writeln!(f, "  push {}", num)?;
             }
-            ExprKind::Binary(binary) => {
+            ConvExprKind::Binary(binary) => {
                 Self::gen_expr(f, *binary.lhs)?;
                 Self::gen_expr(f, *binary.rhs)?;
                 writeln!(f, "  pop rdi")?;
@@ -46,17 +49,6 @@ impl Generator {
                         writeln!(f, "  idiv rdi")?;
                     }
                 }
-                writeln!(f, "  push rax")?;
-            }
-            ExprKind::Unary(UnOp::Plus, expr) => Self::gen_expr(f, *expr)?,
-            ExprKind::Unary(UnOp::Minus, expr) => {
-                Self::gen_expr(f, *expr)?;
-                writeln!(f, "  pop rdi")?;
-                writeln!(f, "  mov rax, 0")?;
-                // Ideally, this can be optimized by re-parsing the expression,
-                // but we don't care about the performance here.
-                // -x := 0 - x
-                writeln!(f, "  sub rax, rdi")?;
                 writeln!(f, "  push rax")?;
             }
         }
