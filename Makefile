@@ -44,7 +44,7 @@ clean:
 	$(call RUN_CMD,cargo clean)
 
 fmt: 
-	$(call RUN_CMD,cargo fmt --all)
-	$(call RUN_CMD,cargo clippy --fix --allow-dirty)
+	cargo fmt --all
+	cargo clippy --fix --allow-dirty
 
 .PHONY: FORCE test clean test cargo_test test_all fmt

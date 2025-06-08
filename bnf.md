@@ -1,6 +1,7 @@
 # Ref
 ```
-<expr>    := <mul> ("+" <mul> | "-" <mul>)*
-<mul>     := <primary> ("*" <primary> | "/" <primary>)*
-<primary> := <num> | "(" <expr> ")"
+<expr>      := <mul> ("+" <mul> | "-" <mul>)*
+<mul>       := <unary> ("*" <unary> | "/" <unary>)*
+<unary>     := ("+" | "-")? <primary>
+<primary>   := <num> | "(" <expr> ")"
 ```
