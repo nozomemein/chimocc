@@ -60,3 +60,69 @@ impl ConvBinary {
         Self { kind, lhs, rhs }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::{BinOpKind, Expr, UnOp};
+
+    fn num(n: isize) -> Expr {
+        Expr::new_num(n)
+    }
+    fn unary(op: UnOp, expr: Expr) -> Expr {
+        Expr::new_unary(op, expr)
+    }
+    fn bin(op: BinOpKind, lhs: Expr, rhs: Expr) -> Expr {
+        Expr::new_binary(op, lhs, rhs)
+    }
+    fn conv_num(n: isize) -> ConvExpr {
+        ConvExpr::new_num(n)
+    }
+    fn conv_bin(op: BinOpKind, lhs: ConvExpr, rhs: ConvExpr) -> ConvExpr {
+        ConvExpr::new_binary(op, lhs, rhs)
+    }
+
+    #[test]
+    fn test_down_expr_num() {
+        let expr = num(42);
+        let conv = Analyzer::down_expr(expr);
+        assert_eq!(conv, conv_num(42));
+    }
+
+    #[test]
+    fn test_down_expr_unary_minus() {
+        let expr = unary(UnOp::Minus, num(10));
+        let conv = Analyzer::down_expr(expr);
+        let expected = conv_bin(BinOpKind::Sub, conv_num(0), conv_num(10));
+        assert_eq!(conv, expected);
+    }
+
+    #[test]
+    fn test_down_expr_unary_plus() {
+        let expr = unary(UnOp::Plus, num(10));
+        let conv = Analyzer::down_expr(expr);
+        let expected = conv_num(10);
+        assert_eq!(conv, expected);
+    }
+
+    #[test]
+    fn test_down_expr_binary() {
+        let expr = bin(BinOpKind::Add, num(1), num(2));
+        let conv = Analyzer::down_expr(expr);
+        let expected = conv_bin(BinOpKind::Add, conv_num(1), conv_num(2));
+        assert_eq!(conv, expected);
+    }
+
+    #[test]
+    fn test_down_expr_nested() {
+        let expr = unary(UnOp::Minus, unary(UnOp::Minus, num(5)));
+        let conv = Analyzer::down_expr(expr);
+        // -(-5) => 0 - (0 - 5)
+        let expected = conv_bin(
+            BinOpKind::Sub,
+            conv_num(0),
+            conv_bin(BinOpKind::Sub, conv_num(0), conv_num(5)),
+        );
+        assert_eq!(conv, expected);
+    }
+}
