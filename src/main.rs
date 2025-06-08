@@ -36,16 +36,7 @@ fn main() -> Result<(), std::io::Error> {
     let expr = parser.parse_expr(&mut token_stream);
     let mut buf_writer = BufWriter::new(output_file);
 
-    writeln!(buf_writer, ".intel_syntax noprefix")?;
-    writeln!(buf_writer, ".global main")?;
-    writeln!(buf_writer, "main:")?;
-
-    Generator::gen_expr(&mut buf_writer, expr)?;
-    writeln!(buf_writer, "  pop rax")?;
-    writeln!(buf_writer, "  ret")?;
-
-    // Specify NX (No eXecute) for the stack
-    writeln!(buf_writer, ".section .note.GNU-stack,\"\",@progbits")?;
+    Generator::gen_head(&mut buf_writer, expr)?;
 
     buf_writer.flush()?;
 

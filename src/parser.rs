@@ -44,24 +44,24 @@ impl Parser {
     }
 
     pub fn parse_unary<I>(&self, tokens: &mut TokenStream<'_, I>) -> Expr
-where
-    I: Clone + Iterator<Item = Token>,
-{
-    match tokens.peek() {
-        Some(Token { kind, .. }) => match &**kind {
-            TokenKind::BinOp(BinOpToken::Plus) => {
-                tokens.next();
-                Expr::new_unary(UnOp::Plus, self.parse_unary(tokens))
-            }
-            TokenKind::BinOp(BinOpToken::Minus) => {
-                tokens.next();
-                Expr::new_unary(UnOp::Minus, self.parse_unary(tokens))
-            }
-            _ => self.parse_primary(tokens),
-        },
-        None => panic!("Expected token, but none"),
+    where
+        I: Clone + Iterator<Item = Token>,
+    {
+        match tokens.peek() {
+            Some(Token { kind, .. }) => match &**kind {
+                TokenKind::BinOp(BinOpToken::Plus) => {
+                    tokens.next();
+                    Expr::new_unary(UnOp::Plus, self.parse_unary(tokens))
+                }
+                TokenKind::BinOp(BinOpToken::Minus) => {
+                    tokens.next();
+                    Expr::new_unary(UnOp::Minus, self.parse_unary(tokens))
+                }
+                _ => self.parse_primary(tokens),
+            },
+            None => panic!("Expected token, but none"),
+        }
     }
-}
 
     pub fn parse_primary<I>(&self, tokens: &mut TokenStream<'_, I>) -> Expr
     where
@@ -96,8 +96,8 @@ pub enum ExprKind {
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum UnOp {
-  Plus,
-  Minus,
+    Plus,
+    Minus,
 }
 
 impl Expr {
