@@ -7,6 +7,7 @@ use std::io::Read;
 use std::io::Write;
 use std::path::Path;
 
+mod analyzer;
 mod generator;
 mod lexer;
 mod parser;
@@ -32,10 +33,14 @@ fn main() -> Result<(), std::io::Error> {
 
     let tokens = lexer::Lexer::new(&input).tokenize();
     let mut token_stream = TokenStream::new(tokens.into_iter(), &input);
+
     let parser = parser::Parser::new();
     let expr = parser.parse_expr(&mut token_stream);
-    let mut buf_writer = BufWriter::new(output_file);
 
+    let analyzer = analyzer::Analyzer::new(&input);
+    let expr = analyzer.down_expr(expr);
+
+    let mut buf_writer = BufWriter::new(output_file);
     Generator::gen_head(&mut buf_writer, expr)?;
 
     buf_writer.flush()?;
