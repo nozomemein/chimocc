@@ -30,7 +30,7 @@ impl Parser {
     where
         I: Clone + Iterator<Item = Token>,
     {
-        let mut lhs = self.parse_primary(tokens);
+        let mut lhs = self.parse_unary(tokens);
         while let Some(Token { kind, .. }) = tokens.peek() {
             let op = match &**kind {
                 TokenKind::BinOp(BinOpToken::Mul) => BinOpKind::Mul,
@@ -38,10 +38,30 @@ impl Parser {
                 _ => break,
             };
             tokens.next();
-            lhs = Expr::new_binary(op, lhs, self.parse_mul(tokens));
+            lhs = Expr::new_binary(op, lhs, self.parse_unary(tokens));
         }
         lhs
     }
+
+    pub fn parse_unary<I>(&self, tokens: &mut TokenStream<'_, I>) -> Expr
+where
+    I: Clone + Iterator<Item = Token>,
+{
+    match tokens.peek() {
+        Some(Token { kind, .. }) => match &**kind {
+            TokenKind::BinOp(BinOpToken::Plus) => {
+                tokens.next();
+                Expr::new_unary(UnOp::Plus, self.parse_unary(tokens))
+            }
+            TokenKind::BinOp(BinOpToken::Minus) => {
+                tokens.next();
+                Expr::new_unary(UnOp::Minus, self.parse_unary(tokens))
+            }
+            _ => self.parse_primary(tokens),
+        },
+        None => panic!("Expected token, but none"),
+    }
+}
 
     pub fn parse_primary<I>(&self, tokens: &mut TokenStream<'_, I>) -> Expr
     where
@@ -71,6 +91,13 @@ pub struct Expr {
 pub enum ExprKind {
     Binary(Binary),
     Num(isize),
+    Unary(UnOp, Box<Expr>),
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum UnOp {
+  Plus,
+  Minus,
 }
 
 impl Expr {
@@ -83,6 +110,12 @@ impl Expr {
     pub fn new_num(num: isize) -> Self {
         Self {
             kind: ExprKind::Num(num),
+        }
+    }
+
+    pub fn new_unary(kind: UnOp, expr: Expr) -> Self {
+        Self {
+            kind: ExprKind::Unary(kind, Box::new(expr)),
         }
     }
 }
@@ -139,11 +172,42 @@ mod tests {
         assert_eq!(expr.kind, expected.kind);
     }
 
+    #[test]
+    fn test_unary_op() {
+        let input = "-10 + 20";
+        let tokens = Lexer::new(input).tokenize();
+        let mut token_stream = TokenStream::new(tokens.into_iter(), input);
+        let parser = Parser::new();
+        let expr = parser.parse_expr(&mut token_stream);
+        let expected = bin(BinOpKind::Add, unary(UnOp::Minus, num(10)), num(20));
+        assert_eq!(expr.kind, expected.kind);
+
+        let input = "-(-10)";
+        let tokens = Lexer::new(input).tokenize();
+        let mut token_stream = TokenStream::new(tokens.into_iter(), input);
+        let parser = Parser::new();
+        let expr = parser.parse_expr(&mut token_stream);
+        let expected = unary(UnOp::Minus, unary(UnOp::Minus, num(10)));
+        assert_eq!(expr.kind, expected.kind);
+
+        let input = "- -10";
+        let tokens = Lexer::new(input).tokenize();
+        let mut token_stream = TokenStream::new(tokens.into_iter(), input);
+        let parser = Parser::new();
+        let expr = parser.parse_expr(&mut token_stream);
+        let expected = unary(UnOp::Minus, unary(UnOp::Minus, num(10)));
+        assert_eq!(expr.kind, expected.kind);
+    }
+
     fn bin(op: BinOpKind, lhs: Expr, rhs: Expr) -> Expr {
         Expr::new_binary(op, lhs, rhs)
     }
 
     fn num(n: isize) -> Expr {
         Expr::new_num(n)
+    }
+
+    fn unary(op: UnOp, expr: Expr) -> Expr {
+        Expr::new_unary(op, expr)
     }
 }

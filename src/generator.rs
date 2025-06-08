@@ -1,6 +1,6 @@
 use std::io::{BufWriter, Write};
 
-use crate::parser::{BinOpKind, Expr, ExprKind};
+use crate::parser::{BinOpKind, Expr, ExprKind, UnOp};
 
 pub struct Generator {}
 
@@ -33,6 +33,15 @@ impl Generator {
                     }
                 }
                 writeln!(f, "  push rax")?;
+            }
+            ExprKind::Unary(unary, expr) => {
+                // wip
+                Self::gen_expr(f, *expr)?;
+                writeln!(f, "  pop rax")?;
+                match unary {
+                    UnOp::Plus => writeln!(f, "  push rax")?,
+                    UnOp::Minus => writeln!(f, "  neg rax")?,
+                }
             }
         }
         Ok(())
