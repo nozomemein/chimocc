@@ -48,6 +48,7 @@ impl Generator {
                         // rdx = rdx-rax % rdi
                         writeln!(f, "  idiv rdi")?;
                     }
+                    _ => unimplemented!(),
                 }
                 writeln!(f, "  push rax")?;
             }

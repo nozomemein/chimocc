@@ -26,6 +26,61 @@ impl Parser {
         lhs
     }
 
+    pub fn parse_equality<I>(&self, tokens: &mut TokenStream<'_, I>) -> Expr
+    where
+        I: Clone + Iterator<Item = Token>,
+    {
+        let mut lhs = self.parse_relational(tokens);
+        while let Some(Token { kind, .. }) = tokens.peek() {
+            let op = match &**kind {
+                TokenKind::EtEq => BinOpKind::Eq,
+                TokenKind::Ne => BinOpKind::Ne,
+                _ => break,
+            };
+            tokens.next();
+            lhs = Expr::new_binary(op, lhs, self.parse_relational(tokens));
+        }
+        lhs
+    }
+
+    pub fn parse_relational<I>(&self, tokens: &mut TokenStream<'_, I>) -> Expr
+    where
+        I: Clone + Iterator<Item = Token>,
+    {
+        let mut lhs = self.parse_add(tokens);
+
+        while let Some(Token { kind, .. }) = tokens.peek() {
+            let op = match &**kind {
+                TokenKind::Lt => BinOpKind::Lt,
+                TokenKind::Le => BinOpKind::Le,
+                TokenKind::Gt => BinOpKind::Gt,
+                TokenKind::Ge => BinOpKind::Ge,
+                _ => break,
+            };
+            tokens.next();
+            lhs = Expr::new_binary(op, lhs, self.parse_add(tokens));
+        }
+        lhs
+    }
+
+    pub fn parse_add<I>(&self, tokens: &mut TokenStream<'_, I>) -> Expr
+    where
+        I: Clone + Iterator<Item = Token>,
+    {
+        let mut lhs = self.parse_mul(tokens);
+
+        while let Some(Token { kind, .. }) = tokens.peek() {
+            let op = match &**kind {
+                TokenKind::BinOp(BinOpToken::Plus) => BinOpKind::Add,
+                TokenKind::BinOp(BinOpToken::Minus) => BinOpKind::Sub,
+                _ => break,
+            };
+            tokens.next();
+            lhs = Expr::new_binary(op, lhs, self.parse_mul(tokens));
+        }
+        lhs
+    }
+
     pub fn parse_mul<I>(&self, tokens: &mut TokenStream<'_, I>) -> Expr
     where
         I: Clone + Iterator<Item = Token>,
@@ -140,6 +195,12 @@ pub enum BinOpKind {
     Sub,
     Mul,
     Div,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+    Eq,
+    Ne
 }
 
 #[cfg(test)]
@@ -196,6 +257,60 @@ mod tests {
         let parser = Parser::new();
         let expr = parser.parse_expr(&mut token_stream);
         let expected = unary(UnOp::Minus, unary(UnOp::Minus, num(10)));
+        assert_eq!(expr.kind, expected.kind);
+    }
+
+    #[test]
+    fn test_parse_equality() {
+        let input = "1 == 2";
+        let tokens = Lexer::new(input).tokenize();
+        let mut token_stream = TokenStream::new(tokens.into_iter(), input);
+        let parser = Parser::new();
+        let expr = parser.parse_equality(&mut token_stream);
+        let expected = bin(BinOpKind::Eq, num(1), num(2));
+        assert_eq!(expr.kind, expected.kind);
+
+        let input = "1 != 2";
+        let tokens = Lexer::new(input).tokenize();
+        let mut token_stream = TokenStream::new(tokens.into_iter(), input);
+        let parser = Parser::new();
+        let expr = parser.parse_equality(&mut token_stream);
+        let expected = bin(BinOpKind::Ne, num(1), num(2));
+        assert_eq!(expr.kind, expected.kind);
+    }
+
+    #[test]
+    fn test_parse_relational() {
+        let input = "1 < 2";
+        let tokens = Lexer::new(input).tokenize();
+        let mut token_stream = TokenStream::new(tokens.into_iter(), input);
+        let parser = Parser::new();
+        let expr = parser.parse_relational(&mut token_stream);
+        let expected = bin(BinOpKind::Lt, num(1), num(2));
+        assert_eq!(expr.kind, expected.kind);
+
+        let input = "1 <= 2";
+        let tokens = Lexer::new(input).tokenize();
+        let mut token_stream = TokenStream::new(tokens.into_iter(), input);
+        let parser = Parser::new();
+        let expr = parser.parse_relational(&mut token_stream);
+        let expected = bin(BinOpKind::Le, num(1), num(2));
+        assert_eq!(expr.kind, expected.kind);
+
+        let input = "1 > 2";
+        let tokens = Lexer::new(input).tokenize();
+        let mut token_stream = TokenStream::new(tokens.into_iter(), input);
+        let parser = Parser::new();
+        let expr = parser.parse_relational(&mut token_stream);
+        let expected = bin(BinOpKind::Gt, num(1), num(2));
+        assert_eq!(expr.kind, expected.kind);
+
+        let input = "1 >= 2";
+        let tokens = Lexer::new(input).tokenize();
+        let mut token_stream = TokenStream::new(tokens.into_iter(), input);
+        let parser = Parser::new();
+        let expr = parser.parse_relational(&mut token_stream);
+        let expected = bin(BinOpKind::Ge, num(1), num(2));
         assert_eq!(expr.kind, expected.kind);
     }
 
