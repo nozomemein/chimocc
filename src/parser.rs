@@ -8,6 +8,28 @@ impl Parser {
         Self {}
     }
 
+    pub fn parse_program<I>(&self, tokens: &mut TokenStream<'_, I>) -> Program
+    where
+        I: Clone + Iterator<Item = Token>,
+    {
+        let mut program = Program::new();
+        while !tokens.at_eof() {
+            program.push_stmt(self.parse_stmt(tokens));
+            tokens.expect(TokenKind::Semi); // stmt must be followed by a semicolon
+        }
+        tokens.expect(TokenKind::Eof);
+        assert!(tokens.next().is_none());
+        program
+    }
+
+    pub fn parse_stmt<I>(&self, tokens: &mut TokenStream<'_, I>) -> Stmt
+    where
+        I: Clone + Iterator<Item = Token>,
+    {
+        let expr = self.parse_expr(tokens);
+        Stmt::expr(expr)
+    }
+
     pub fn parse_expr<I>(&self, tokens: &mut TokenStream<'_, I>) -> Expr
     where
         I: Clone + Iterator<Item = Token>,
@@ -124,6 +146,51 @@ impl Parser {
             None => panic!("No more tokens available in parse_primary"),
         }
     }
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct Program {
+    pub components: Vec<ProgramKind>,
+}
+
+impl Program {
+    pub fn new() -> Self {
+        Self {
+            components: Vec::new(),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn with_vec(components: Vec<ProgramKind>) -> Self {
+        Self { components }
+    }
+
+    pub fn push_stmt(&mut self, stmt: Stmt) {
+        self.components.push(ProgramKind::Stmt(stmt));
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum ProgramKind {
+    Stmt(Stmt),
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct Stmt {
+    pub kind: StmtKind,
+}
+
+impl Stmt {
+    pub fn expr(expr: Expr) -> Self {
+        Self {
+            kind: StmtKind::Expr(expr),
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum StmtKind {
+    Expr(Expr),
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -303,6 +370,20 @@ mod tests {
         assert_eq!(expr.kind, expected.kind);
     }
 
+    #[test]
+    fn test_parse_stmt() {
+        let input = "1 + 2; 3 + 4;";
+        let tokens = Lexer::new(input).tokenize();
+        let mut token_stream = TokenStream::new(tokens.into_iter(), input);
+        let parser = Parser::new();
+        let program = parser.parse_program(&mut token_stream);
+        let expected = Program::with_vec(vec![
+            stmt(bin(BinOpKind::Add, num(1), num(2))),
+            stmt(bin(BinOpKind::Add, num(3), num(4))),
+        ]);
+        assert_eq!(program, expected);
+    }
+
     fn bin(op: BinOpKind, lhs: Expr, rhs: Expr) -> Expr {
         Expr::new_binary(op, lhs, rhs)
     }
@@ -313,5 +394,9 @@ mod tests {
 
     fn unary(op: UnOp, expr: Expr) -> Expr {
         Expr::new_unary(op, expr)
+    }
+
+    fn stmt(expr: Expr) -> ProgramKind {
+        ProgramKind::Stmt(Stmt::expr(expr))
     }
 }
