@@ -2,7 +2,7 @@ use std::io::{BufWriter, Write};
 
 use crate::analyzer::{
     ConvBinOpKind, ConvBinary, ConvExpr, ConvExprKind, ConvProgram, ConvProgramKind, ConvStmt,
-    ConvStmtKind,
+    ConvStmtKind, Lvar,
 };
 
 pub struct Generator {}
@@ -64,8 +64,21 @@ impl Generator {
             ConvExprKind::Binary(binary) => {
                 Self::gen_binary(f, binary);
             }
-            ConvExprKind::Lvar(lvar) => todo!(),
-            ConvExprKind::Assign(lhs, rhs) => todo!(),
+            ConvExprKind::Lvar(_) => {
+                Self::gen_lvalue(f, expr);
+
+                writeln!(f, "  pop rax")?;
+                writeln!(f, "  mov rax, [rax]")?; // fetch the value from the address stored in rax
+                writeln!(f, "  push rax")?;
+            }
+            ConvExprKind::Assign(lhs, rhs) => {
+                Self::gen_lvalue(f, *lhs)?;
+                Self::gen_expr(f, *rhs)?;
+                writeln!(f, "  pop rdi")?; // rhs's value
+                writeln!(f, "  pop rax")?; // lhs's address itself
+                writeln!(f, "  mov [rax], rdi")?; // store the rhs's value to the lhs's address
+                writeln!(f, "  push rdi")?; // push the rhs's value back to the stack
+            }
         }
         Ok(())
     }
@@ -117,5 +130,20 @@ impl Generator {
         }
         writeln!(f, "  push rax")?;
         Ok(())
+    }
+
+    // fetch the address of the left-hand side of the assignment
+    pub fn gen_lvalue<W: Write>(
+        f: &mut BufWriter<W>,
+        expr: ConvExpr,
+    ) -> Result<(), std::io::Error> {
+        match expr.kind {
+            ConvExprKind::Lvar(Lvar { offset }) => {
+                writeln!(f, "  mov rax, rbp")?;
+                writeln!(f, "  sub rax, {}", offset)?;
+                writeln!(f, "  push rax")
+            }
+            _ => panic!("Expected Lvar, but got {:?}", expr.kind),
+        }
     }
 }

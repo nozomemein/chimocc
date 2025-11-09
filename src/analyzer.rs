@@ -80,6 +80,7 @@ impl ConvProgram {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_vec(components: Vec<ConvProgramKind>) -> Self {
         Self { components }
     }
@@ -87,8 +88,12 @@ impl ConvProgram {
     pub fn push_stmt(&mut self, stmt: ConvStmt) {
         self.components.push(ConvProgramKind::Stmt(stmt));
     }
+}
 
-    pub fn into_iter(self) -> impl Iterator<Item = ConvProgramKind> {
+impl IntoIterator for ConvProgram {
+    type Item = ConvProgramKind;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+    fn into_iter(self) -> Self::IntoIter {
         self.components.into_iter()
     }
 }

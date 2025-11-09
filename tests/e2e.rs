@@ -94,3 +94,14 @@ fn test_comparison_chains() {
         "((32 + -980) <= (-  5*4 * (-2) + 9 -997 * (-2) / (-2))) + 99;",
     );
 }
+
+#[test]
+fn test_assignments() {
+    assert_case(1, "a = 1; a;");
+    assert_case(2, "a = 1; a = 2; a;");
+    assert_case(3, "a = 1; a = a + 2; a;");
+    assert_case(
+        55,
+        "a = 1; b = 2; c = 3; z = 4; y = 5; x = 6; t = 10; u = 9; v = 8; w = 7; a +  b + c + z + y + x + t + u + v + w;",
+    );
+}

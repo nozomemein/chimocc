@@ -187,8 +187,13 @@ impl Program {
     pub fn push_stmt(&mut self, stmt: Stmt) {
         self.components.push(ProgramKind::Stmt(stmt));
     }
+}
 
-    pub fn into_iter(self) -> impl Iterator<Item = ProgramKind> {
+impl IntoIterator for Program {
+    type Item = ProgramKind;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
         self.components.into_iter()
     }
 }
