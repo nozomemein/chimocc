@@ -94,6 +94,11 @@ impl<'a> Lexer<'a> {
 
                 input = &input[len_token..];
                 continue;
+            } else if input.starts_with(&('a'..='z').collect::<Vec<_>>()[..]) {
+                tokens.push(Token::new(
+                    TokenKind::Ident(input.chars().next().unwrap().to_string()),
+                    pos.next_char(),
+                ));
             } else {
                 self.error_at(
                     &pos,
@@ -142,6 +147,8 @@ pub enum BinOpToken {
 pub enum TokenKind {
     BinOp(BinOpToken),
     Num(isize),
+    // An identifier
+    Ident(String),
     /// An opening delimiter e.g., `{`
     OpenDelim(DelimToken),
     /// An closing delimiter e.g., `}`
@@ -549,6 +556,36 @@ mod tests {
                 TokenKind::Num(1),
                 TokenKind::Ne,
                 TokenKind::Num(2),
+                TokenKind::Eof
+            ]
+        );
+    }
+
+    #[test]
+    fn test_tokenize_ident() {
+        let input = String::from("a");
+        let lexer = Lexer::new(&input);
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![TokenKind::Ident("a".to_string()), TokenKind::Eof]
+        );
+
+        let input = String::from("a * c");
+        let lexer = Lexer::new(&input);
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![
+                TokenKind::Ident("a".to_string()),
+                TokenKind::BinOp(BinOpToken::Mul),
+                TokenKind::Ident("c".to_string()),
                 TokenKind::Eof
             ]
         );

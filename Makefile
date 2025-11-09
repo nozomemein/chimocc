@@ -31,7 +31,7 @@ tmp.s: tmp.c
 tmp: tmp.s
 	$(call RUN_CMD,$(CC) $(CFLAGS) $(ASFLAGS) $< -o $@)
 
-test: $(COMPILER)
+test:
 	$(call RUN_CMD,cargo test)
 
 test_all: test
