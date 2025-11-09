@@ -69,6 +69,8 @@ impl<'a> Lexer<'a> {
                     TokenKind::CloseDelim(DelimToken::Paren),
                     pos.next_char(),
                 ));
+            } else if input.starts_with(';') {
+                tokens.push(Token::new(TokenKind::Semi, pos.next_char()));
             } else if input.starts_with('<') {
                 tokens.push(Token::new(TokenKind::Lt, pos.next_char()));
             } else if input.starts_with('>') {
@@ -153,6 +155,8 @@ pub enum TokenKind {
     OpenDelim(DelimToken),
     /// An closing delimiter e.g., `}`
     CloseDelim(DelimToken),
+    /// semicolon
+    Semi,
     /// Less than
     Lt,
     /// Greater than
@@ -563,7 +567,7 @@ mod tests {
 
     #[test]
     fn test_tokenize_ident() {
-        let input = String::from("a");
+        let input = String::from("a;");
         let lexer = Lexer::new(&input);
         assert_eq!(
             lexer
@@ -571,7 +575,11 @@ mod tests {
                 .into_iter()
                 .map(|token| token.kind())
                 .collect::<Vec<_>>(),
-            token_kinds![TokenKind::Ident("a".to_string()), TokenKind::Eof]
+            token_kinds![
+                TokenKind::Ident("a".to_string()),
+                TokenKind::Semi,
+                TokenKind::Eof
+            ]
         );
 
         let input = String::from("a * c");
