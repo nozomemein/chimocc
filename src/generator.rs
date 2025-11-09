@@ -1,9 +1,6 @@
 use std::io::{BufWriter, Write};
 
-use crate::{
-    analyzer::{ConvExpr, ConvExprKind},
-    parser::BinOpKind,
-};
+use crate::analyzer::{ConvBinOpKind, ConvExpr, ConvExprKind};
 
 pub struct Generator {}
 
@@ -38,10 +35,10 @@ impl Generator {
                 writeln!(f, "  pop rdi")?;
                 writeln!(f, "  pop rax")?;
                 match binary.kind {
-                    BinOpKind::Add => writeln!(f, "  add rax, rdi")?,
-                    BinOpKind::Sub => writeln!(f, "  sub rax, rdi")?,
-                    BinOpKind::Mul => writeln!(f, "  imul rax, rdi")?,
-                    BinOpKind::Div => {
+                    ConvBinOpKind::Add => writeln!(f, "  add rax, rdi")?,
+                    ConvBinOpKind::Sub => writeln!(f, "  sub rax, rdi")?,
+                    ConvBinOpKind::Mul => writeln!(f, "  imul rax, rdi")?,
+                    ConvBinOpKind::Div => {
                         // rdx-rax = rax
                         writeln!(f, "  cqo")?;
                         // rax = rdx-rax / rdi

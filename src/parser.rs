@@ -200,7 +200,7 @@ pub enum BinOpKind {
     Gt,
     Ge,
     Eq,
-    Ne
+    Ne,
 }
 
 #[cfg(test)]
