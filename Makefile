@@ -36,6 +36,9 @@ test: $(COMPILER)
 
 test_all: test
 
+run: tmp
+	$(call RUN_CMD,./tmp)
+
 clean:
 	rm -f tmp.s tmp
 	$(call RUN_CMD,cargo clean)
@@ -44,4 +47,4 @@ fmt:
 	cargo fmt --all
 	cargo clippy --fix --allow-dirty
 
-.PHONY: FORCE test clean test test_all fmt
+.PHONY: FORCE test clean test test_all fmt run
