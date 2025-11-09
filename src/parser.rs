@@ -34,7 +34,25 @@ impl Parser {
     where
         I: Clone + Iterator<Item = Token>,
     {
-        self.parse_equality(tokens)
+        self.parse_assign(tokens)
+    }
+
+    pub fn parse_assign<I>(&self, tokens: &mut TokenStream<'_, I>) -> Expr
+    where
+        I: Clone + Iterator<Item = Token>,
+    {
+        let lhs = self.parse_equality(tokens);
+        let (kind, pos) = match tokens.peek() {
+            Some(Token { kind, pos }) => (kind, pos),
+            None => panic!("Expected token, but none"),
+        };
+        match **kind {
+            TokenKind::Eq => {
+                tokens.next();
+                Expr::new_assign(lhs, self.parse_assign(tokens))
+            }
+            _ => lhs,
+        }
     }
 
     pub fn parse_equality<I>(&self, tokens: &mut TokenStream<'_, I>) -> Expr
@@ -141,6 +159,7 @@ impl Parser {
                     tokens.expect(TokenKind::CloseDelim(DelimToken::Paren));
                     expr
                 }
+                TokenKind::Ident(ident) => Expr::new_ident(ident),
                 _ => panic!("Expected a number, found {:?}", token.kind),
             },
             None => panic!("No more tokens available in parse_primary"),
@@ -203,6 +222,8 @@ pub enum ExprKind {
     Binary(Binary),
     Num(isize),
     Unary(UnOp, Box<Expr>),
+    Assign(Box<Expr>, Box<Expr>),
+    Ident(String),
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -227,6 +248,18 @@ impl Expr {
     pub fn new_unary(kind: UnOp, expr: Expr) -> Self {
         Self {
             kind: ExprKind::Unary(kind, Box::new(expr)),
+        }
+    }
+
+    pub fn new_assign(lhs: Expr, rhs: Expr) -> Self {
+        Self {
+            kind: ExprKind::Assign(Box::new(lhs), Box::new(rhs)),
+        }
+    }
+
+    pub fn new_ident(ident: String) -> Self {
+        Self {
+            kind: ExprKind::Ident(ident),
         }
     }
 }
@@ -384,6 +417,20 @@ mod tests {
         assert_eq!(program, expected);
     }
 
+    #[test]
+    fn test_parse_assign() {
+        let input = "a = 1; b = 3;";
+        let tokens = Lexer::new(input).tokenize();
+        let mut token_stream = TokenStream::new(tokens.into_iter(), input);
+        let parser = Parser::new();
+        let program = parser.parse_program(&mut token_stream);
+        let expected = Program::with_vec(vec![
+            stmt(assign(ident("a"), num(1))),
+            stmt(assign(ident("b"), num(3))),
+        ]);
+        assert_eq!(program, expected);
+    }
+
     fn bin(op: BinOpKind, lhs: Expr, rhs: Expr) -> Expr {
         Expr::new_binary(op, lhs, rhs)
     }
@@ -398,5 +445,13 @@ mod tests {
 
     fn stmt(expr: Expr) -> ProgramKind {
         ProgramKind::Stmt(Stmt::expr(expr))
+    }
+
+    fn assign(lhs: Expr, rhs: Expr) -> Expr {
+        Expr::new_assign(lhs, rhs)
+    }
+
+    fn ident(ident: &str) -> Expr {
+        Expr::new_ident(ident.to_string())
     }
 }

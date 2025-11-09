@@ -42,6 +42,7 @@ impl Analyzer {
 
             // do nothing
             ExprKind::Unary(UnOp::Plus, operand) => Self::down_expr(*operand),
+            _ => unimplemented!(),
         }
     }
 }

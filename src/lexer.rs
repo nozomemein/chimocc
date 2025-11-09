@@ -33,7 +33,6 @@ impl<'a> Lexer<'a> {
                 input = &input[2..];
                 continue;
             }
-
             // skip white spaces
             if input.starts_with(' ') || input.starts_with('\t') {
                 pos.next_char();
@@ -71,6 +70,8 @@ impl<'a> Lexer<'a> {
                 ));
             } else if input.starts_with(';') {
                 tokens.push(Token::new(TokenKind::Semi, pos.next_char()));
+            } else if input.starts_with('=') {
+                tokens.push(Token::new(TokenKind::Eq, pos.next_char()));
             } else if input.starts_with('<') {
                 tokens.push(Token::new(TokenKind::Lt, pos.next_char()));
             } else if input.starts_with('>') {
@@ -169,6 +170,8 @@ pub enum TokenKind {
     EtEq,
     /// Not equal to
     Ne,
+    // assign
+    Eq,
     Eof,
 }
 
@@ -560,6 +563,22 @@ mod tests {
                 TokenKind::Num(1),
                 TokenKind::Ne,
                 TokenKind::Num(2),
+                TokenKind::Eof
+            ]
+        );
+
+        let input = String::from("a = 1");
+        let lexer = Lexer::new(&input);
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![
+                TokenKind::Ident("a".to_string()),
+                TokenKind::Eq,
+                TokenKind::Num(1),
                 TokenKind::Eof
             ]
         );
