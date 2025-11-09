@@ -51,46 +51,46 @@ fn assert_case(expected: i32, input: &str) {
 
 #[test]
 fn test_literals_and_arithmetic() {
-    assert_case(1, "1");
-    assert_case(0, "0");
-    assert_case(255, "255");
-    assert_case(1, "1 + 0");
-    assert_case(2, "1 + 1");
-    assert_case(97, "1 + 100 - 4");
-    assert_case(4, "1 * 2 + 8 / 4");
-    assert_case(6, "1 * 2 + 2 *8 / 4");
-    assert_case(97, "1 * 2 - 2 *8 / 4 + 99");
-    assert_case(99, "1 * (2 - 2) *8 / 4 + 99");
-    assert_case(5, "(1 - 2) * (0 - 8) - 3*1");
-    assert_case(10, "-10 + 20");
-    assert_case(10, "- -10");
-    assert_case(10, "- - +10");
+    assert_case(1, "1;");
+    assert_case(0, "0;");
+    assert_case(255, "255;");
+    assert_case(1, "1 + 0;");
+    assert_case(2, "1 + 1;");
+    assert_case(97, "1 + 100 - 4;");
+    assert_case(4, "1 * 2 + 8 / 4;");
+    assert_case(6, "1 * 2 + 2 *8 / 4;");
+    assert_case(97, "1 * 2 - 2 *8 / 4 + 99;");
+    assert_case(99, "1 * (2 - 2) *8 / 4 + 99;");
+    assert_case(5, "(1 - 2) * (0 - 8) - 3*1;");
+    assert_case(10, "-10 + 20;");
+    assert_case(10, "- -10;");
+    assert_case(10, "- - +10;");
 }
 
 #[test]
 fn test_comparisons() {
-    assert_case(1, "1 == 1");
-    assert_case(0, "1 != 1");
-    assert_case(0, "1 > 2");
-    assert_case(1, "2 > 1");
-    assert_case(1, "1 < 2");
-    assert_case(0, "1 < 1");
-    assert_case(1, "1 <= 2");
-    assert_case(1, "1 <= 1");
-    assert_case(0, "1 >= 2");
-    assert_case(1, "1 >= 1");
-    assert_case(0, "1 > 1");
+    assert_case(1, "1 == 1;");
+    assert_case(0, "1 != 1;");
+    assert_case(0, "1 > 2;");
+    assert_case(1, "2 > 1;");
+    assert_case(1, "1 < 2;");
+    assert_case(0, "1 < 1;");
+    assert_case(1, "1 <= 2;");
+    assert_case(1, "1 <= 1;");
+    assert_case(0, "1 >= 2;");
+    assert_case(1, "1 >= 1;");
+    assert_case(0, "1 > 1;");
 }
 
 #[test]
 fn test_comparison_chains() {
-    assert_case(1, "1 == 1");
-    assert_case(0, "1 != 1");
-    assert_case(0, "(1 == 1) < (1 != 1)");
-    assert_case(1, "1 == 1 < 1 != 1");
-    assert_case(1, "2 >= 2");
+    assert_case(1, "1 == 1;");
+    assert_case(0, "1 != 1;");
+    assert_case(0, "(1 == 1) < (1 != 1);");
+    assert_case(1, "1 == 1 < 1 != 1;");
+    assert_case(1, "2 >= 2;");
     assert_case(
         100,
-        "((32 + -980) <= (-  5*4 * (-2) + 9 -997 * (-2) / (-2))) + 99",
+        "((32 + -980) <= (-  5*4 * (-2) + 9 -997 * (-2) / (-2))) + 99;",
     );
 }
