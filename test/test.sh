@@ -47,4 +47,21 @@ assert 10 "-10 + 20"
 assert 10 "- -10"
 assert 10 "- - +10"
 
+assert 1 "1 == 1"
+assert 0 "1 != 1"
+assert 0 "1 > 2"
+assert 1 "1 < 2"
+assert 1 "1 <= 2"
+assert 1 "1 <= 1"
+assert 0 "1 >= 2"
+assert 1 "1 >= 1"
+
+assert 1 "1 == 1"
+assert 0 "1 != 1"
+assert 0 "(1 == 1) < (1 != 1)"
+assert 0 "1 == 1 < 1 != 1"
+assert 1 "2 >= 2"
+
+assert 100 "((32 + -980) <= (-  5*4 * (-2) + 9 -997 * (-2) / (-2))) + 99"
+
 echo "All tests passed"

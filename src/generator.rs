@@ -45,7 +45,31 @@ impl Generator {
                         // rdx = rdx-rax % rdi
                         writeln!(f, "  idiv rdi")?;
                     }
-                    _ => unimplemented!(),
+                    ConvBinOpKind::Eq => {
+                        writeln!(f, "  cmp rax, rdi")?;
+                        // al : lowwer 8bit of rax
+                        // al = flag-reg(eq)
+                        writeln!(f, "  sete al")?;
+                        writeln!(f, "  movzx rax, al")?;
+                    }
+                    ConvBinOpKind::Ne => {
+                        writeln!(f, "  cmp rax, rdi")?;
+                        // al = flag-reg(not equal to)
+                        writeln!(f, "  setne al")?;
+                        writeln!(f, "  movzx rax, al")?;
+                    }
+                    ConvBinOpKind::Le => {
+                        writeln!(f, "  cmp rax, rdi")?;
+                        // al = flag-reg(less than or equal to)
+                        writeln!(f, "  setle al")?;
+                        writeln!(f, "  movzx rax, al")?;
+                    }
+                    ConvBinOpKind::Lt => {
+                        writeln!(f, "  cmp rax, rdi")?;
+                        // al = flag-reg(less than)
+                        writeln!(f, "  setl al")?;
+                        writeln!(f, "  movzx rax, al")?;
+                    }
                 }
                 writeln!(f, "  push rax")?;
             }

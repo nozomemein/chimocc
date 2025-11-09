@@ -12,8 +12,8 @@ impl Analyzer {
                 rhs,
             }) => ConvExpr::new_binary(
                 ConvBinOpKind::Le,
-                Self::down_expr(*lhs),
                 Self::down_expr(*rhs),
+                Self::down_expr(*lhs),
             ),
             // `a > b` : `b < a`
             ExprKind::Binary(Binary {
@@ -22,8 +22,8 @@ impl Analyzer {
                 rhs,
             }) => ConvExpr::new_binary(
                 ConvBinOpKind::Lt,
-                Self::down_expr(*lhs),
                 Self::down_expr(*rhs),
+                Self::down_expr(*lhs),
             ),
             // do nothing
             ExprKind::Binary(Binary { kind, lhs, rhs }) => ConvExpr::new_binary(

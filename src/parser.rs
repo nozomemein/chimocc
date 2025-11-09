@@ -12,18 +12,7 @@ impl Parser {
     where
         I: Clone + Iterator<Item = Token>,
     {
-        let mut lhs = self.parse_mul(tokens);
-
-        while let Some(Token { kind, .. }) = tokens.peek() {
-            let op = match &**kind {
-                TokenKind::BinOp(BinOpToken::Plus) => BinOpKind::Add,
-                TokenKind::BinOp(BinOpToken::Minus) => BinOpKind::Sub,
-                _ => break,
-            };
-            tokens.next();
-            lhs = Expr::new_binary(op, lhs, self.parse_mul(tokens));
-        }
-        lhs
+        self.parse_equality(tokens)
     }
 
     pub fn parse_equality<I>(&self, tokens: &mut TokenStream<'_, I>) -> Expr
