@@ -1,8 +1,25 @@
-use crate::parser::{BinOpKind, Binary, Expr, ExprKind, UnOp};
+use crate::parser::{
+    BinOpKind, Binary, Expr, ExprKind, Program, ProgramKind, Stmt, StmtKind, UnOp,
+};
 
 pub struct Analyzer {}
 
 impl Analyzer {
+    pub fn down_program(program: Program) -> ConvProgram {
+        let mut conv_program = ConvProgram::new();
+        for stmt in program.into_iter() {
+            match stmt {
+                ProgramKind::Stmt(stmt) => conv_program.push_stmt(Self::down_stmt(stmt)),
+            }
+        }
+        conv_program
+    }
+
+    pub fn down_stmt(stmt: Stmt) -> ConvStmt {
+        match stmt.kind {
+            StmtKind::Expr(expr) => ConvStmt::new_expr(Self::down_expr(expr)),
+        }
+    }
     pub fn down_expr(expr: Expr) -> ConvExpr {
         match expr.kind {
             // `a >= b ` : `b <= a`
@@ -39,12 +56,60 @@ impl Analyzer {
                 ConvExpr::new_num(0),
                 Self::down_expr(*operand),
             ),
+            // do nothing
+            ExprKind::Assign(lhs, rhs) => {
+                ConvExpr::new_assign(Self::down_expr(*lhs), Self::down_expr(*rhs))
+            }
 
             // do nothing
             ExprKind::Unary(UnOp::Plus, operand) => Self::down_expr(*operand),
-            _ => unimplemented!(),
+            ExprKind::Ident(ident) => ConvExpr::new_lvar(ident),
         }
     }
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct ConvProgram {
+    pub components: Vec<ConvProgramKind>,
+}
+
+impl ConvProgram {
+    pub fn new() -> Self {
+        Self {
+            components: Vec::new(),
+        }
+    }
+
+    pub fn with_vec(components: Vec<ConvProgramKind>) -> Self {
+        Self { components }
+    }
+
+    pub fn push_stmt(&mut self, stmt: ConvStmt) {
+        self.components.push(ConvProgramKind::Stmt(stmt));
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum ConvProgramKind {
+    Stmt(ConvStmt),
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct ConvStmt {
+    pub kind: ConvStmtKind,
+}
+
+impl ConvStmt {
+    pub fn new_expr(expr: ConvExpr) -> Self {
+        Self {
+            kind: ConvStmtKind::Expr(expr),
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum ConvStmtKind {
+    Expr(ConvExpr),
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -63,12 +128,37 @@ impl ConvExpr {
             kind: ConvExprKind::Num(num),
         }
     }
+
+    pub fn new_assign(lhs: ConvExpr, rhs: ConvExpr) -> Self {
+        Self {
+            kind: ConvExprKind::Assign(Box::new(lhs), Box::new(rhs)),
+        }
+    }
+
+    pub fn new_lvar(name: String) -> Self {
+        // FIXME: Currentlty we assume the name is one character and the position in the stackcan be decided by the index of the alphabet.
+        assert!(name.len() == 1);
+        let index = ('a'..='z')
+            .position(|c| c == name.chars().next().unwrap())
+            .expect("Expected alphabet here");
+        let offset = index * 8;
+        Self {
+            kind: ConvExprKind::Lvar(Lvar { offset }),
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum ConvExprKind {
     Binary(ConvBinary),
     Num(isize),
+    Lvar(Lvar),
+    Assign(Box<ConvExpr>, Box<ConvExpr>),
+}
+
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub struct Lvar {
+    pub offset: usize,
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -131,11 +221,24 @@ mod tests {
     fn bin(op: BinOpKind, lhs: Expr, rhs: Expr) -> Expr {
         Expr::new_binary(op, lhs, rhs)
     }
+    fn assign(lhs: Expr, rhs: Expr) -> Expr {
+        Expr::new_assign(lhs, rhs)
+    }
+    fn ident(name: &str) -> Expr {
+        Expr::new_ident(name.to_string())
+    }
     fn conv_num(n: isize) -> ConvExpr {
         ConvExpr::new_num(n)
     }
     fn conv_bin(op: ConvBinOpKind, lhs: ConvExpr, rhs: ConvExpr) -> ConvExpr {
         ConvExpr::new_binary(op, lhs, rhs)
+    }
+
+    fn conv_assign(lhs: ConvExpr, rhs: ConvExpr) -> ConvExpr {
+        ConvExpr::new_assign(lhs, rhs)
+    }
+    fn conv_lvar(name: String) -> ConvExpr {
+        ConvExpr::new_lvar(name)
     }
 
     #[test]
@@ -211,6 +314,35 @@ mod tests {
         let expr = bin(BinOpKind::Ne, num(1), num(2));
         let conv = Analyzer::down_expr(expr);
         let expected = conv_bin(ConvBinOpKind::Ne, conv_num(1), conv_num(2));
+        assert_eq!(conv, expected);
+    }
+
+    #[test]
+    fn test_down_expr_assign() {
+        let expr = assign(ident("a"), num(1));
+        let conv = Analyzer::down_expr(expr);
+        let expected = conv_assign(conv_lvar("a".to_string()), conv_num(1));
+        assert_eq!(conv, expected);
+    }
+
+    #[test]
+    fn test_down_stmt_expr() {
+        let stmt = Stmt::expr(assign(ident("a"), num(1)));
+        let conv = Analyzer::down_stmt(stmt);
+        let expected = ConvStmt::new_expr(conv_assign(conv_lvar("a".to_string()), conv_num(1)));
+        assert_eq!(conv, expected);
+    }
+
+    #[test]
+    fn test_down_program() {
+        let program = Program::with_vec(vec![ProgramKind::Stmt(Stmt::expr(assign(
+            ident("a"),
+            num(1),
+        )))]);
+        let conv = Analyzer::down_program(program);
+        let expected = ConvProgram::with_vec(vec![ConvProgramKind::Stmt(ConvStmt::new_expr(
+            conv_assign(conv_lvar("a".to_string()), conv_num(1)),
+        ))]);
         assert_eq!(conv, expected);
     }
 }

@@ -73,6 +73,7 @@ impl Generator {
                 }
                 writeln!(f, "  push rax")?;
             }
+            _ => unimplemented!(),
         }
         Ok(())
     }
