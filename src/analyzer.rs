@@ -95,7 +95,7 @@ impl ConvBinOpKind {
             BinOpKind::Div => Some(ConvBinOpKind::Div),
             BinOpKind::Eq => Some(ConvBinOpKind::Eq),
             BinOpKind::Le => Some(ConvBinOpKind::Le),
-            BinOpKind::Lt => Some(ConvBinOpKind::Le),
+            BinOpKind::Lt => Some(ConvBinOpKind::Lt),
             BinOpKind::Ge => None,
             BinOpKind::Gt => None,
             BinOpKind::Ne => Some(ConvBinOpKind::Ne),
@@ -185,7 +185,7 @@ mod tests {
     fn test_down_expr_binary_ge() {
         let expr = bin(BinOpKind::Ge, num(1), num(2));
         let conv = Analyzer::down_expr(expr);
-        let expected = conv_bin(ConvBinOpKind::Le, conv_num(1), conv_num(2));
+        let expected = conv_bin(ConvBinOpKind::Le, conv_num(2), conv_num(1));
         assert_eq!(conv, expected);
     }
 
@@ -193,7 +193,7 @@ mod tests {
     fn test_down_expr_binary_gt() {
         let expr = bin(BinOpKind::Gt, num(1), num(2));
         let conv = Analyzer::down_expr(expr);
-        let expected = conv_bin(ConvBinOpKind::Lt, conv_num(1), conv_num(2));
+        let expected = conv_bin(ConvBinOpKind::Lt, conv_num(2), conv_num(1));
         assert_eq!(conv, expected);
     }
 
