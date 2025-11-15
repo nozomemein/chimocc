@@ -30,7 +30,7 @@ impl Generator {
         for component in program.into_iter() {
             match component {
                 ConvProgramKind::Stmt(stmt) => {
-                    Self::gen_stmt(f, stmt);
+                    Self::gen_stmt(f, stmt)?;
                 }
             }
             writeln!(f, "  pop rax")?;
@@ -50,7 +50,7 @@ impl Generator {
     pub fn gen_stmt<W: Write>(f: &mut BufWriter<W>, stmt: ConvStmt) -> Result<(), std::io::Error> {
         match stmt.kind {
             ConvStmtKind::Expr(expr) => {
-                Self::gen_expr(f, expr);
+                Self::gen_expr(f, expr)?;
             }
         }
         Ok(())
@@ -62,10 +62,10 @@ impl Generator {
                 writeln!(f, "  push {}", num)?;
             }
             ConvExprKind::Binary(binary) => {
-                Self::gen_binary(f, binary);
+                Self::gen_binary(f, binary)?;
             }
             ConvExprKind::Lvar(_) => {
-                Self::gen_lvalue(f, expr);
+                Self::gen_lvalue(f, expr)?;
 
                 writeln!(f, "  pop rax")?;
                 writeln!(f, "  mov rax, [rax]")?; // fetch the value from the address stored in rax
