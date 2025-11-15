@@ -97,11 +97,25 @@ impl<'a> Lexer<'a> {
 
                 input = &input[len_token..];
                 continue;
-            } else if input.starts_with(&('a'..='z').collect::<Vec<_>>()[..]) {
+            } else if input
+                .starts_with(&('a'..='z').chain(vec!['_'].into_iter()).collect::<Vec<_>>()[..])
+            {
+                let mut chars = input.chars().peekable();
+                let mut ident = String::from(chars.next().unwrap());
+
+                while let Some(&('a'..='z') | '_') = chars.peek() {
+                    ident.push(chars.next().unwrap());
+                }
+
+                let len_token = ident.len();
+
                 tokens.push(Token::new(
-                    TokenKind::Ident(input.chars().next().unwrap().to_string()),
-                    pos.next_char(),
+                    TokenKind::Ident(ident),
+                    pos.next_token(len_token),
                 ));
+
+                input = &input[len_token..];
+                continue;
             } else {
                 self.error_at(
                     &pos,
@@ -613,6 +627,24 @@ mod tests {
                 TokenKind::Ident("a".to_string()),
                 TokenKind::BinOp(BinOpToken::Mul),
                 TokenKind::Ident("c".to_string()),
+                TokenKind::Eof
+            ]
+        );
+
+        let input = String::from("aa = bb_c =  1");
+        let lexer = Lexer::new(&input);
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![
+                TokenKind::Ident("aa".to_string()),
+                TokenKind::Eq,
+                TokenKind::Ident("bb_c".to_string()),
+                TokenKind::Eq,
+                TokenKind::Num(1),
                 TokenKind::Eof
             ]
         );
