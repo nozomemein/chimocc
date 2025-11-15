@@ -26,6 +26,10 @@ impl Parser {
     where
         I: Clone + Iterator<Item = Token>,
     {
+        if tokens.consume(TokenKind::Return) {
+            let ret_expr = self.parse_expr(tokens);
+            return Stmt::ret(ret_expr);
+        }
         let expr = self.parse_expr(tokens);
         Stmt::expr(expr)
     }
@@ -214,11 +218,18 @@ impl Stmt {
             kind: StmtKind::Expr(expr),
         }
     }
+
+    pub fn ret(expr: Expr) -> Self {
+        Self {
+            kind: StmtKind::Return(expr),
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum StmtKind {
     Expr(Expr),
+    Return(Expr),
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -424,6 +435,14 @@ mod tests {
             stmt(bin(BinOpKind::Add, num(3), num(4))),
         ]);
         assert_eq!(program, expected);
+
+        let input = "return 1;";
+        let tokens = Lexer::new(input).tokenize();
+        let mut token_stream = TokenStream::new(tokens.into_iter(), input);
+        let parser = Parser::new();
+        let program = parser.parse_program(&mut token_stream);
+        let expected = Program::with_vec(vec![ret(num(1))]);
+        assert_eq!(program, expected);
     }
 
     #[test]
@@ -454,6 +473,10 @@ mod tests {
 
     fn stmt(expr: Expr) -> ProgramKind {
         ProgramKind::Stmt(Stmt::expr(expr))
+    }
+
+    fn ret(expr: Expr) -> ProgramKind {
+        ProgramKind::Stmt(Stmt::ret(expr))
     }
 
     fn assign(lhs: Expr, rhs: Expr) -> Expr {

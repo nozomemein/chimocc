@@ -106,3 +106,11 @@ fn test_assignments() {
     );
     assert_case(3, "abc = 22; cde=7; abc / cde;");
 }
+
+#[test]
+fn test_return() {
+    assert_case(1, "return 1;");
+    assert_case(3, "return 1 + 2;");
+    assert_case(1, "abc = 22; cde=7; return abc > cde;");
+    assert_case(4, "return 4; return 5;");
+}

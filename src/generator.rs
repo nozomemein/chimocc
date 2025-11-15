@@ -37,6 +37,8 @@ impl Generator {
         }
 
         // epilogue
+        // FIXME: This is a temporary label for the return statement.
+        writeln!(f, ".main_retL:")?;
         writeln!(f, "  mov rsp, rbp")?;
         writeln!(f, "  pop rbp")?;
 
@@ -51,6 +53,11 @@ impl Generator {
         match stmt.kind {
             ConvStmtKind::Expr(expr) => {
                 Self::gen_expr(f, expr)?;
+            }
+            ConvStmtKind::Return(expr) => {
+                Self::gen_expr(f, expr)?;
+                writeln!(f, "  pop rax")?;
+                writeln!(f, " jmp .main_retL")?;
             }
         }
         Ok(())

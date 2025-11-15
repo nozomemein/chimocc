@@ -110,7 +110,10 @@ impl<'a> Lexer<'a> {
                 let len_token = ident.len();
 
                 tokens.push(Token::new(
-                    TokenKind::Ident(ident),
+                    match ident.as_str() {
+                        "return" => TokenKind::Return,
+                        _ => TokenKind::Ident(ident),
+                    },
                     pos.next_token(len_token),
                 ));
 
@@ -166,6 +169,8 @@ pub enum TokenKind {
     Num(isize),
     // An identifier
     Ident(String),
+    /// return
+    Return,
     /// An opening delimiter e.g., `{`
     OpenDelim(DelimToken),
     /// An closing delimiter e.g., `}`
@@ -245,6 +250,17 @@ impl<'a, I: Iterator<Item = Token>> TokenStream<'a, I> {
             },
             _ => self.error_at(None, &format!("number expected but got: {:?}", token)),
         }
+    }
+
+    /// consume the next token if it is the expected kind and return true, otherwise return false
+    pub fn consume(&mut self, kind: TokenKind) -> bool {
+        if let Some(token) = self.peek() {
+            if *token.kind == kind {
+                self.next();
+                return true;
+            }
+        }
+        false
     }
 
     pub fn peek_kind(&mut self) -> Option<Box<TokenKind>> {
@@ -675,6 +691,25 @@ mod tests {
                 (TokenKind::BinOp(BinOpToken::Plus), Position::new(1, 1)),
                 (TokenKind::Num(5), Position::new(2, 1)),
                 (TokenKind::Eof, Position::new(3, 1))
+            ]
+        );
+    }
+
+    #[test]
+    fn test_tokenize_return() {
+        let input = String::from("return 1;");
+        let lexer = Lexer::new(&input);
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![
+                TokenKind::Return,
+                TokenKind::Num(1),
+                TokenKind::Semi,
+                TokenKind::Eof
             ]
         );
     }

@@ -30,6 +30,7 @@ impl Analyzer {
     pub fn down_stmt(&mut self, stmt: Stmt, lvar_map: &mut BTreeMap<String, usize>) -> ConvStmt {
         match stmt.kind {
             StmtKind::Expr(expr) => ConvStmt::new_expr(self.down_expr(expr, lvar_map)),
+            StmtKind::Return(expr) => ConvStmt::new_return(self.down_expr(expr, lvar_map)),
         }
     }
     pub fn down_expr(&mut self, expr: Expr, lvar_map: &mut BTreeMap<String, usize>) -> ConvExpr {
@@ -127,11 +128,18 @@ impl ConvStmt {
             kind: ConvStmtKind::Expr(expr),
         }
     }
+
+    pub fn new_return(expr: ConvExpr) -> Self {
+        Self {
+            kind: ConvStmtKind::Return(expr),
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum ConvStmtKind {
     Expr(ConvExpr),
+    Return(ConvExpr),
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -363,6 +371,11 @@ mod tests {
         let stmt = Stmt::expr(assign(ident("a"), num(1)));
         let conv = Analyzer::new().down_stmt(stmt, &mut BTreeMap::new());
         let expected = ConvStmt::new_expr(conv_assign(conv_lvar_with_offset(8), conv_num(1)));
+        assert_eq!(conv, expected);
+
+        let stmt = Stmt::ret(num(1));
+        let conv = Analyzer::new().down_stmt(stmt, &mut BTreeMap::new());
+        let expected = ConvStmt::new_return(conv_num(1));
         assert_eq!(conv, expected);
     }
 
