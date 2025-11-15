@@ -59,6 +59,9 @@ impl Generator {
                 writeln!(f, "  pop rax")?;
                 writeln!(f, " jmp .main_retL")?;
             }
+            ConvStmtKind::For(..) => todo!(),
+            ConvStmtKind::If(..) => todo!(),
+            ConvStmtKind::While(..) => todo!(),
         }
         Ok(())
     }

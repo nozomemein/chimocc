@@ -31,9 +31,22 @@ impl Analyzer {
         match stmt.kind {
             StmtKind::Expr(expr) => ConvStmt::new_expr(self.down_expr(expr, lvar_map)),
             StmtKind::Return(expr) => ConvStmt::new_return(self.down_expr(expr, lvar_map)),
-            StmtKind::If(..) => todo!(),
-            StmtKind::While(..) => todo!(),
-            StmtKind::For(..) => todo!(),
+            // do nothing
+            StmtKind::If(cond, then, els) => ConvStmt::new_if(
+                self.down_expr(cond, lvar_map),
+                self.down_stmt(*then, lvar_map),
+                els.map(|els| self.down_stmt(*els, lvar_map)),
+            ),
+            StmtKind::While(cond, body) => ConvStmt::new_while(
+                self.down_expr(cond, lvar_map),
+                self.down_stmt(*body, lvar_map),
+            ),
+            StmtKind::For(init, cond, inc, then) => ConvStmt::new_for(
+                init.map(|init| self.down_expr(init, lvar_map)),
+                cond.map(|cond| self.down_expr(cond, lvar_map)),
+                inc.map(|inc| self.down_expr(inc, lvar_map)),
+                self.down_stmt(*then, lvar_map),
+            ),
         }
     }
     pub fn down_expr(&mut self, expr: Expr, lvar_map: &mut BTreeMap<String, usize>) -> ConvExpr {
@@ -137,12 +150,43 @@ impl ConvStmt {
             kind: ConvStmtKind::Return(expr),
         }
     }
+
+    pub fn new_if(cond: ConvExpr, then: ConvStmt, els: Option<ConvStmt>) -> Self {
+        Self {
+            kind: ConvStmtKind::If(cond, Box::new(then), els.map(Box::new)),
+        }
+    }
+
+    pub fn new_while(cond: ConvExpr, body: ConvStmt) -> Self {
+        Self {
+            kind: ConvStmtKind::While(cond, Box::new(body)),
+        }
+    }
+
+    pub fn new_for(
+        init: Option<ConvExpr>,
+        cond: Option<ConvExpr>,
+        inc: Option<ConvExpr>,
+        then: ConvStmt,
+    ) -> Self {
+        Self {
+            kind: ConvStmtKind::For(init, cond, inc, Box::new(then)),
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum ConvStmtKind {
     Expr(ConvExpr),
     Return(ConvExpr),
+    If(ConvExpr, Box<ConvStmt>, Option<Box<ConvStmt>>),
+    While(ConvExpr, Box<ConvStmt>),
+    For(
+        Option<ConvExpr>,
+        Option<ConvExpr>,
+        Option<ConvExpr>,
+        Box<ConvStmt>,
+    ),
 }
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -422,5 +466,38 @@ mod tests {
                 ))),
             ])
         )
+    }
+
+    #[test]
+    fn test_down_stmt_if() {
+        let stmt = Stmt::new_if(num(1), Stmt::expr(num(2)), Some(Stmt::expr(num(3))));
+        let conv = Analyzer::new().down_stmt(stmt, &mut BTreeMap::new());
+        let expected = ConvStmt::new_if(
+            conv_num(1),
+            ConvStmt::new_expr(conv_num(2)),
+            Some(ConvStmt::new_expr(conv_num(3))),
+        );
+        assert_eq!(conv, expected);
+    }
+
+    #[test]
+    fn test_down_stmt_while() {
+        let stmt = Stmt::new_while(num(1), Stmt::expr(num(2)));
+        let conv = Analyzer::new().down_stmt(stmt, &mut BTreeMap::new());
+        let expected = ConvStmt::new_while(conv_num(1), ConvStmt::new_expr(conv_num(2)));
+        assert_eq!(conv, expected);
+    }
+
+    #[test]
+    fn test_down_stmt_for() {
+        let stmt = Stmt::new_for(Some(num(1)), Some(num(2)), Some(num(3)), Stmt::expr(num(4)));
+        let conv = Analyzer::new().down_stmt(stmt, &mut BTreeMap::new());
+        let expected = ConvStmt::new_for(
+            Some(ConvExpr::new_num(1)),
+            Some(ConvExpr::new_num(2)),
+            Some(ConvExpr::new_num(3)),
+            ConvStmt::new_expr(ConvExpr::new_num(4)),
+        );
+        assert_eq!(conv, expected);
     }
 }
