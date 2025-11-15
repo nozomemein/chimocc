@@ -120,3 +120,9 @@ fn test_if() {
     assert_case(3, "a = 1; if (44 > 32) a = 3; if(44 < 32) a = 5; return a;");
     assert_case(100, "a = 5; if (55 != 43) a = 100; else a = 50; return a;");
 }
+
+#[test]
+fn test_while() {
+    assert_case(10, "a = 0; while (a < 10) a = a + 1; return a;");
+    assert_case(0, "a = 10; while (a > 0) a = a - 1; return a;");
+}

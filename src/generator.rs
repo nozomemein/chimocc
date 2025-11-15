@@ -88,7 +88,17 @@ impl Generator {
                 self.gen_stmt(f, *then)?;
                 writeln!(f, ".Lend{}:", label)?; // end of the if block
             }
-            ConvStmtKind::While(..) => todo!(),
+            ConvStmtKind::While(cond, body) => {
+                let label = self.label();
+                writeln!(f, ".Lbegin{}:", label)?;
+                self.gen_expr(f, cond)?;
+                writeln!(f, "  pop rax")?; // fetch the result of the condition expression
+                writeln!(f, "  cmp rax, 0")?; // compare the result with 0
+                writeln!(f, "  je .Lend{}", label)?; // skip body when condition is false
+                self.gen_stmt(f, *body)?;
+                writeln!(f, "  jmp .Lbegin{}", label)?; // jump to the beginning of the while loop
+                writeln!(f, ".Lend{}:", label)?;
+            }
         }
         Ok(())
     }
