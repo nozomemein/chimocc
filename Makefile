@@ -45,6 +45,6 @@ clean:
 
 fmt: 
 	cargo fmt --all
-	cargo clippy --fix --allow-dirty
+	cargo clippy --fix --allow-dirty --all-targets --all-features
 
 .PHONY: FORCE test clean test test_all fmt run

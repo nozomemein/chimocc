@@ -254,11 +254,9 @@ impl<'a, I: Iterator<Item = Token>> TokenStream<'a, I> {
 
     /// consume the next token if it is the expected kind and return true, otherwise return false
     pub fn consume(&mut self, kind: TokenKind) -> bool {
-        if let Some(token) = self.peek() {
-            if *token.kind == kind {
-                self.next();
-                return true;
-            }
+        if self.peek().is_some_and(|token| *token.kind == kind) {
+            self.next();
+            return true;
         }
         false
     }
