@@ -114,3 +114,9 @@ fn test_return() {
     assert_case(1, "abc = 22; cde=7; return abc > cde;");
     assert_case(4, "return 4; return 5;");
 }
+
+#[test]
+fn test_if() {
+    assert_case(3, "a = 1; if (44 > 32) a = 3; if(44 < 32) a = 5; return a;");
+    assert_case(100, "a = 5; if (55 != 43) a = 100; else a = 50; return a;");
+}

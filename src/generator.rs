@@ -5,15 +5,18 @@ use crate::analyzer::{
     ConvStmtKind, Lvar,
 };
 
-pub struct Generator {}
+pub struct Generator {
+    label: usize,
+}
 
 #[allow(unused)]
 impl Generator {
     pub fn new() -> Self {
-        Self {}
+        Self { label: 0 }
     }
 
     pub fn gen_head<W: Write>(
+        &mut self,
         f: &mut BufWriter<W>,
         program: ConvProgram,
     ) -> Result<(), std::io::Error> {
@@ -30,7 +33,7 @@ impl Generator {
         for component in program.into_iter() {
             match component {
                 ConvProgramKind::Stmt(stmt) => {
-                    Self::gen_stmt(f, stmt)?;
+                    self.gen_stmt(f, stmt)?;
                 }
             }
             writeln!(f, "  pop rax")?;
@@ -49,41 +52,69 @@ impl Generator {
         Ok(())
     }
 
-    pub fn gen_stmt<W: Write>(f: &mut BufWriter<W>, stmt: ConvStmt) -> Result<(), std::io::Error> {
+    pub fn gen_stmt<W: Write>(
+        &mut self,
+        f: &mut BufWriter<W>,
+        stmt: ConvStmt,
+    ) -> Result<(), std::io::Error> {
         match stmt.kind {
             ConvStmtKind::Expr(expr) => {
-                Self::gen_expr(f, expr)?;
+                self.gen_expr(f, expr)?;
             }
             ConvStmtKind::Return(expr) => {
-                Self::gen_expr(f, expr)?;
+                self.gen_expr(f, expr)?;
                 writeln!(f, "  pop rax")?;
                 writeln!(f, " jmp .main_retL")?;
             }
             ConvStmtKind::For(..) => todo!(),
-            ConvStmtKind::If(..) => todo!(),
+            ConvStmtKind::If(cond, then, Some(els)) => {
+                let label = self.label();
+                self.gen_expr(f, cond)?;
+                writeln!(f, "  pop rax")?; // fetch the result of the condition expression
+                writeln!(f, "  cmp rax, 0")?; // compare the result with 0. 0 means false, 1 means true.
+                writeln!(f, "  je .Lelse{}", label)?; // if cond is false, jump to the else block (je: jump if equal)
+                self.gen_stmt(f, *then)?;
+                writeln!(f, "  jmp .Lend{}", label)?; // jump to the end of the if block
+                writeln!(f, ".Lelse{}:", label)?; // else block
+                self.gen_stmt(f, *els)?;
+                writeln!(f, ".Lend{}:", label)?; // end of the if block
+            }
+            ConvStmtKind::If(cond, then, None) => {
+                let label = self.label();
+                self.gen_expr(f, cond)?;
+                writeln!(f, "  pop rax")?; // fetch the result of the condition expression
+                writeln!(f, "  cmp rax, 0")?; // compare the result with 0
+                writeln!(f, "  je .Lend{}", label)?; // skip body when condition is false
+                self.gen_stmt(f, *then)?;
+                writeln!(f, ".Lend{}:", label)?; // end of the if block
+            }
             ConvStmtKind::While(..) => todo!(),
         }
         Ok(())
     }
 
-    pub fn gen_expr<W: Write>(f: &mut BufWriter<W>, expr: ConvExpr) -> Result<(), std::io::Error> {
+    pub fn gen_expr<W: Write>(
+        &mut self,
+        f: &mut BufWriter<W>,
+        expr: ConvExpr,
+    ) -> Result<(), std::io::Error> {
         match expr.kind {
             ConvExprKind::Num(num) => {
                 writeln!(f, "  push {}", num)?;
             }
             ConvExprKind::Binary(binary) => {
-                Self::gen_binary(f, binary)?;
+                self.gen_binary(f, binary)?;
             }
             ConvExprKind::Lvar(_) => {
-                Self::gen_lvalue(f, expr)?;
+                self.gen_lvalue(f, expr)?;
 
                 writeln!(f, "  pop rax")?;
                 writeln!(f, "  mov rax, [rax]")?; // fetch the value from the address stored in rax
                 writeln!(f, "  push rax")?;
             }
             ConvExprKind::Assign(lhs, rhs) => {
-                Self::gen_lvalue(f, *lhs)?;
-                Self::gen_expr(f, *rhs)?;
+                self.gen_lvalue(f, *lhs)?;
+                self.gen_expr(f, *rhs)?;
                 writeln!(f, "  pop rdi")?; // rhs's value
                 writeln!(f, "  pop rax")?; // lhs's address itself
                 writeln!(f, "  mov [rax], rdi")?; // store the rhs's value to the lhs's address
@@ -94,11 +125,12 @@ impl Generator {
     }
 
     pub fn gen_binary<W: Write>(
+        &mut self,
         f: &mut BufWriter<W>,
         binary: ConvBinary,
     ) -> Result<(), std::io::Error> {
-        Self::gen_expr(f, *binary.lhs)?;
-        Self::gen_expr(f, *binary.rhs)?;
+        self.gen_expr(f, *binary.lhs)?;
+        self.gen_expr(f, *binary.rhs)?;
         writeln!(f, "  pop rdi")?;
         writeln!(f, "  pop rax")?;
         match binary.kind {
@@ -144,6 +176,7 @@ impl Generator {
 
     // fetch the address of the left-hand side of the assignment
     pub fn gen_lvalue<W: Write>(
+        &mut self,
         f: &mut BufWriter<W>,
         expr: ConvExpr,
     ) -> Result<(), std::io::Error> {
@@ -155,5 +188,11 @@ impl Generator {
             }
             _ => panic!("Expected Lvar, but got {:?}", expr.kind),
         }
+    }
+
+    // generate a new label, which ensures the uniqueness of the label
+    fn label(&mut self) -> usize {
+        self.label += 1;
+        self.label
     }
 }

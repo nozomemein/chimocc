@@ -41,7 +41,8 @@ fn main() -> Result<(), std::io::Error> {
     let program = analyzer.down_program(program);
 
     let mut buf_writer = BufWriter::new(output_file);
-    Generator::gen_head(&mut buf_writer, program)?;
+    let mut generator = Generator::new();
+    generator.gen_head(&mut buf_writer, program)?;
 
     buf_writer.flush()?;
 
