@@ -110,7 +110,15 @@ impl<'a> Lexer<'a> {
                 let len_token = ident.len();
 
                 tokens.push(Token::new(
-                    TokenKind::Ident(ident),
+                    // Identifier or Reserved word
+                    match ident.as_str() {
+                        "return" => TokenKind::Return,
+                        "if" => TokenKind::If,
+                        "else" => TokenKind::Else,
+                        "while" => TokenKind::While,
+                        "for" => TokenKind::For,
+                        _ => TokenKind::Ident(ident),
+                    },
                     pos.next_token(len_token),
                 ));
 
@@ -166,6 +174,16 @@ pub enum TokenKind {
     Num(isize),
     // An identifier
     Ident(String),
+    /// return
+    Return,
+    /// if
+    If,
+    /// else
+    Else,
+    /// while
+    While,
+    /// for
+    For,
     /// An opening delimiter e.g., `{`
     OpenDelim(DelimToken),
     /// An closing delimiter e.g., `}`
@@ -245,6 +263,15 @@ impl<'a, I: Iterator<Item = Token>> TokenStream<'a, I> {
             },
             _ => self.error_at(None, &format!("number expected but got: {:?}", token)),
         }
+    }
+
+    /// consume the next token if it is the expected kind and return true, otherwise return false
+    pub fn consume(&mut self, kind: TokenKind) -> bool {
+        if self.peek().is_some_and(|token| *token.kind == kind) {
+            self.next();
+            return true;
+        }
+        false
     }
 
     pub fn peek_kind(&mut self) -> Option<Box<TokenKind>> {
@@ -675,6 +702,98 @@ mod tests {
                 (TokenKind::BinOp(BinOpToken::Plus), Position::new(1, 1)),
                 (TokenKind::Num(5), Position::new(2, 1)),
                 (TokenKind::Eof, Position::new(3, 1))
+            ]
+        );
+    }
+
+    #[test]
+    fn test_tokenize_return() {
+        let input = String::from("return 1;");
+        let lexer = Lexer::new(&input);
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![
+                TokenKind::Return,
+                TokenKind::Num(1),
+                TokenKind::Semi,
+                TokenKind::Eof
+            ]
+        );
+    }
+
+    #[test]
+    fn test_tokenize_if() {
+        let input = String::from("if (1) 2; else 3;");
+        let lexer = Lexer::new(&input);
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![
+                TokenKind::If,
+                TokenKind::OpenDelim(DelimToken::Paren),
+                TokenKind::Num(1),
+                TokenKind::CloseDelim(DelimToken::Paren),
+                TokenKind::Num(2),
+                TokenKind::Semi,
+                TokenKind::Else,
+                TokenKind::Num(3),
+                TokenKind::Semi,
+                TokenKind::Eof
+            ]
+        );
+    }
+
+    #[test]
+    fn test_tokenize_while() {
+        let input = String::from("while (1) 2;");
+        let lexer = Lexer::new(&input);
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![
+                TokenKind::While,
+                TokenKind::OpenDelim(DelimToken::Paren),
+                TokenKind::Num(1),
+                TokenKind::CloseDelim(DelimToken::Paren),
+                TokenKind::Num(2),
+                TokenKind::Semi,
+                TokenKind::Eof
+            ]
+        );
+    }
+
+    #[test]
+    fn test_tokenize_for() {
+        let input = String::from("for (1; 2; 3) 4;");
+        let lexer = Lexer::new(&input);
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![
+                TokenKind::For,
+                TokenKind::OpenDelim(DelimToken::Paren),
+                TokenKind::Num(1),
+                TokenKind::Semi,
+                TokenKind::Num(2),
+                TokenKind::Semi,
+                TokenKind::Num(3),
+                TokenKind::CloseDelim(DelimToken::Paren),
+                TokenKind::Num(4),
+                TokenKind::Semi,
+                TokenKind::Eof
             ]
         );
     }

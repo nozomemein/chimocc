@@ -2,6 +2,10 @@
 ```
 program    = stmt*
 stmt       = expr ";"
+              | "return" <expr> ";"   
+              | "if" "(" <expr> ")" <stmt> ("else" <stmt>)?
+              | "while" "(" expr ")" stmt
+              | "for" "(" <expr>? ";" <expr>? ";" <expr>? ")" <stmt>
 expr       = assign
 assign     = equality ("=" assign)?
 equality   = relational ("==" relational | "!=" relational)*

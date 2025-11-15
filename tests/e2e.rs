@@ -106,3 +106,39 @@ fn test_assignments() {
     );
     assert_case(3, "abc = 22; cde=7; abc / cde;");
 }
+
+#[test]
+fn test_return() {
+    assert_case(1, "return 1;");
+    assert_case(3, "return 1 + 2;");
+    assert_case(1, "abc = 22; cde=7; return abc > cde;");
+    assert_case(4, "return 4; return 5;");
+}
+
+#[test]
+fn test_if() {
+    assert_case(3, "a = 1; if (44 > 32) a = 3; if(44 < 32) a = 5; return a;");
+    assert_case(100, "a = 5; if (55 != 43) a = 100; else a = 50; return a;");
+}
+
+#[test]
+fn test_while() {
+    assert_case(10, "a = 0; while (a < 10) a = a + 1; return a;");
+    assert_case(0, "a = 10; while (a > 0) a = a - 1; return a;");
+}
+
+#[test]
+fn test_for() {
+    assert_case(
+        10,
+        "a = 0; for (i = 0; i < 10; i = i + 1) a = a + 1; return a;",
+    );
+    assert_case(
+        0,
+        "a = 10; for (i = 0; i < 10; i = i + 1) a = a - 1; return a;",
+    );
+    assert_case(
+        55,
+        "sum = 0; for (i = 1; i <= 10; i = i + 1) sum = sum + i; return sum;",
+    );
+}
