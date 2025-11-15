@@ -33,7 +33,6 @@ impl<'a> Lexer<'a> {
                 input = &input[2..];
                 continue;
             }
-
             // skip white spaces
             if input.starts_with(' ') || input.starts_with('\t') {
                 pos.next_char();
@@ -69,6 +68,10 @@ impl<'a> Lexer<'a> {
                     TokenKind::CloseDelim(DelimToken::Paren),
                     pos.next_char(),
                 ));
+            } else if input.starts_with(';') {
+                tokens.push(Token::new(TokenKind::Semi, pos.next_char()));
+            } else if input.starts_with('=') {
+                tokens.push(Token::new(TokenKind::Eq, pos.next_char()));
             } else if input.starts_with('<') {
                 tokens.push(Token::new(TokenKind::Lt, pos.next_char()));
             } else if input.starts_with('>') {
@@ -91,6 +94,25 @@ impl<'a> Lexer<'a> {
                     .expect("Currently support only a number literal.");
 
                 tokens.push(Token::new(TokenKind::Num(num), pos.next_token(len_token)));
+
+                input = &input[len_token..];
+                continue;
+            } else if input
+                .starts_with(&('a'..='z').chain(vec!['_'].into_iter()).collect::<Vec<_>>()[..])
+            {
+                let mut chars = input.chars().peekable();
+                let mut ident = String::from(chars.next().unwrap());
+
+                while let Some(&('a'..='z') | '_') = chars.peek() {
+                    ident.push(chars.next().unwrap());
+                }
+
+                let len_token = ident.len();
+
+                tokens.push(Token::new(
+                    TokenKind::Ident(ident),
+                    pos.next_token(len_token),
+                ));
 
                 input = &input[len_token..];
                 continue;
@@ -142,10 +164,14 @@ pub enum BinOpToken {
 pub enum TokenKind {
     BinOp(BinOpToken),
     Num(isize),
+    // An identifier
+    Ident(String),
     /// An opening delimiter e.g., `{`
     OpenDelim(DelimToken),
     /// An closing delimiter e.g., `}`
     CloseDelim(DelimToken),
+    /// semicolon
+    Semi,
     /// Less than
     Lt,
     /// Greater than
@@ -158,6 +184,8 @@ pub enum TokenKind {
     EtEq,
     /// Not equal to
     Ne,
+    // assign
+    Eq,
     Eof,
 }
 
@@ -549,6 +577,74 @@ mod tests {
                 TokenKind::Num(1),
                 TokenKind::Ne,
                 TokenKind::Num(2),
+                TokenKind::Eof
+            ]
+        );
+
+        let input = String::from("a = 1");
+        let lexer = Lexer::new(&input);
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![
+                TokenKind::Ident("a".to_string()),
+                TokenKind::Eq,
+                TokenKind::Num(1),
+                TokenKind::Eof
+            ]
+        );
+    }
+
+    #[test]
+    fn test_tokenize_ident() {
+        let input = String::from("a;");
+        let lexer = Lexer::new(&input);
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![
+                TokenKind::Ident("a".to_string()),
+                TokenKind::Semi,
+                TokenKind::Eof
+            ]
+        );
+
+        let input = String::from("a * c");
+        let lexer = Lexer::new(&input);
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![
+                TokenKind::Ident("a".to_string()),
+                TokenKind::BinOp(BinOpToken::Mul),
+                TokenKind::Ident("c".to_string()),
+                TokenKind::Eof
+            ]
+        );
+
+        let input = String::from("aa = bb_c =  1");
+        let lexer = Lexer::new(&input);
+        assert_eq!(
+            lexer
+                .tokenize()
+                .into_iter()
+                .map(|token| token.kind())
+                .collect::<Vec<_>>(),
+            token_kinds![
+                TokenKind::Ident("aa".to_string()),
+                TokenKind::Eq,
+                TokenKind::Ident("bb_c".to_string()),
+                TokenKind::Eq,
+                TokenKind::Num(1),
                 TokenKind::Eof
             ]
         );

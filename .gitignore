@@ -1,4 +1,5 @@
 /target
+/\.cargo/
 /tmp
 /tmp.s
 /tmp.c
