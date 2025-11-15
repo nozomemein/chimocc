@@ -31,6 +31,9 @@ impl Analyzer {
         match stmt.kind {
             StmtKind::Expr(expr) => ConvStmt::new_expr(self.down_expr(expr, lvar_map)),
             StmtKind::Return(expr) => ConvStmt::new_return(self.down_expr(expr, lvar_map)),
+            StmtKind::If(..) => todo!(),
+            StmtKind::While(..) => todo!(),
+            StmtKind::For(..) => todo!(),
         }
     }
     pub fn down_expr(&mut self, expr: Expr, lvar_map: &mut BTreeMap<String, usize>) -> ConvExpr {
