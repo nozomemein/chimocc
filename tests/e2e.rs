@@ -126,3 +126,19 @@ fn test_while() {
     assert_case(10, "a = 0; while (a < 10) a = a + 1; return a;");
     assert_case(0, "a = 10; while (a > 0) a = a - 1; return a;");
 }
+
+#[test]
+fn test_for() {
+    assert_case(
+        10,
+        "a = 0; for (i = 0; i < 10; i = i + 1) a = a + 1; return a;",
+    );
+    assert_case(
+        0,
+        "a = 10; for (i = 0; i < 10; i = i + 1) a = a - 1; return a;",
+    );
+    assert_case(
+        55,
+        "sum = 0; for (i = 1; i <= 10; i = i + 1) sum = sum + i; return sum;",
+    );
+}

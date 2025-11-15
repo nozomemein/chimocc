@@ -66,7 +66,26 @@ impl Generator {
                 writeln!(f, "  pop rax")?;
                 writeln!(f, " jmp .main_retL")?;
             }
-            ConvStmtKind::For(..) => todo!(),
+            ConvStmtKind::For(init, cond, inc, body) => {
+                let label = self.label();
+                if let Some(init) = init {
+                    self.gen_expr(f, init)?;
+                }
+                writeln!(f, "  pop rax")?; // discard the result of the initialization expression, as the expr stores the result in the stack
+                writeln!(f, ".Lbegin{}:", label)?;
+                if let Some(cond) = cond {
+                    self.gen_expr(f, cond)?;
+                    writeln!(f, "  pop rax")?;
+                    writeln!(f, "  cmp rax, 0")?;
+                    writeln!(f, "  je .Lend{}", label)?; // skip body when condition is false
+                }
+                self.gen_stmt(f, *body)?;
+                if let Some(inc) = inc {
+                    self.gen_expr(f, inc)?;
+                }
+                writeln!(f, "  jmp .Lbegin{}", label)?;
+                writeln!(f, ".Lend{}:", label)?;
+            }
             ConvStmtKind::If(cond, then, Some(els)) => {
                 let label = self.label();
                 self.gen_expr(f, cond)?;
