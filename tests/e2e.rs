@@ -104,4 +104,5 @@ fn test_assignments() {
         55,
         "a = 1; b = 2; c = 3; z = 4; y = 5; x = 6; t = 10; u = 9; v = 8; w = 7; a +  b + c + z + y + x + t + u + v + w;",
     );
+    assert_case(3, "abc = 22; cde=7; abc / cde;");
 }

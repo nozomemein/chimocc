@@ -37,7 +37,8 @@ fn main() -> Result<(), std::io::Error> {
     let parser = parser::Parser::new();
     let program = parser.parse_program(&mut token_stream);
 
-    let program = analyzer::Analyzer::down_program(program);
+    let mut analyzer = analyzer::Analyzer::new();
+    let program = analyzer.down_program(program);
 
     let mut buf_writer = BufWriter::new(output_file);
     Generator::gen_head(&mut buf_writer, program)?;
